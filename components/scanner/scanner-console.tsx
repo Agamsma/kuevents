@@ -9,6 +9,7 @@ import {
   Loader2,
   RefreshCw,
   Trash2,
+  UserSearch,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -45,6 +46,7 @@ import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
 import { toast } from "@/components/ui/toast";
 import { QrViewport } from "@/components/scanner/qr-viewport";
 import { ScanOverlay } from "@/components/scanner/scan-overlay";
+import { ManualAdmit } from "@/components/scanner/manual-admit";
 
 const ACTIVE_EVENT_KEY = "ku_events_active_event";
 
@@ -53,6 +55,7 @@ interface ScanLogEntry {
   at: number;
   kind: ScanOutcome["kind"];
   label: string;
+  manual: boolean;
 }
 
 export function ScannerConsole() {
@@ -85,6 +88,7 @@ export function ScannerConsole() {
   const [downloading, setDownloading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   const deviceId = useMemo(
     () => (typeof window === "undefined" ? "" : getDeviceId()),
@@ -209,6 +213,36 @@ export function ScannerConsole() {
     [refreshLocalState],
   );
 
+  /**
+   * Applies a resolved scan: feedback, overlay, log, counters.
+   *
+   * Shared by the camera and the manual-admit path so a hand-entered admission
+   * behaves identically from here on — same overlay, same chime, same queue.
+   */
+  const applyOutcome = useCallback(
+    (result: ScanOutcome, key: string) => {
+      if (result.kind === "admitted") playSuccess();
+      else playError();
+
+      setOutcome(result);
+      setLog((entries) =>
+        [
+          {
+            id: `${key}-${Date.now()}`,
+            at: Date.now(),
+            kind: result.kind,
+            label: "ticket" in result ? result.ticket.user_name : "Unknown pass",
+            manual: result.kind === "admitted" && Boolean(result.manual),
+          },
+          ...entries,
+        ].slice(0, 20),
+      );
+
+      void refreshLocalState(eventId);
+    },
+    [eventId, refreshLocalState],
+  );
+
   // ── The scan path. Nothing here awaits the network. ───────────────────────
   const handleScan = useCallback(
     async (payload: string) => {
@@ -229,25 +263,34 @@ export function ScannerConsole() {
         deviceId,
       });
 
-      if (result.kind === "admitted") playSuccess();
-      else playError();
-
-      setOutcome(result);
-      setLog((entries) =>
-        [
-          {
-            id: `${qrHash}-${Date.now()}`,
-            at: Date.now(),
-            kind: result.kind,
-            label: "ticket" in result ? result.ticket.user_name : "Unknown pass",
-          },
-          ...entries,
-        ].slice(0, 20),
-      );
-
-      void refreshLocalState(eventId);
+      applyOutcome(result, qrHash);
     },
-    [eventId, user, deviceId, refreshLocalState],
+    [eventId, user, deviceId, applyOutcome],
+  );
+
+  /**
+   * Admits someone found by name instead of by camera.
+   *
+   * Runs through exactly the same `resolveScan` transaction, so the roster
+   * check, the duplicate check and the outbox entry are identical — the only
+   * difference is the `manual` flag, which follows the record to the audit
+   * trail. This is a different input method, not a different rule.
+   */
+  const handleManualAdmit = useCallback(
+    async (ticket: CachedTicket) => {
+      if (!eventId || !user) return;
+
+      const result = await resolveScan({
+        qrHash: ticket.qr_hash,
+        eventId,
+        scannedBy: user.uid,
+        deviceId,
+        manual: true,
+      });
+
+      applyOutcome(result, ticket.qr_hash);
+    },
+    [eventId, user, deviceId, applyOutcome],
   );
 
   const manualSync = useCallback(async () => {
@@ -455,6 +498,17 @@ export function ScannerConsole() {
               Sync
             </Button>
           </div>
+
+          {/* The fallback. Quiet, but always reachable — the moment it is
+              needed, the queue is stopped and someone is at the front of it. */}
+          <button
+            type="button"
+            onClick={() => setManualOpen(true)}
+            className="mx-auto -mt-1 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-bone-faint transition-colors hover:text-bone"
+          >
+            <UserSearch className="size-3.5" />
+            Code won&rsquo;t scan? Find them by name
+          </button>
         </>
       ) : null}
 
@@ -472,6 +526,11 @@ export function ScannerConsole() {
                 />
                 <span className="min-w-0 flex-1 truncate text-[13px] text-bone">
                   {entry.label}
+                  {entry.manual ? (
+                    <span className="ml-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-gold">
+                      by hand
+                    </span>
+                  ) : null}
                 </span>
                 <span
                   className={`font-mono text-[10px] uppercase tracking-[0.1em] ${
@@ -516,6 +575,15 @@ export function ScannerConsole() {
       <p className="mt-auto pt-5 text-center font-mono text-[10px] text-bone-faint">
         {profile?.full_name ?? user?.email} · Device {deviceId.slice(-6)}
       </p>
+
+      {meta ? (
+        <ManualAdmit
+          open={manualOpen}
+          onOpenChange={setManualOpen}
+          eventId={meta.event_id}
+          onAdmit={handleManualAdmit}
+        />
+      ) : null}
 
       {/* ── Event picker ───────────────────────────────────────────────── */}
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>

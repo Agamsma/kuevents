@@ -145,6 +145,12 @@ export interface CheckInLogDoc {
   result: "admitted" | "duplicate" | "not_found" | "wrong_event" | "cancelled";
   /** True when the scan happened with no connectivity and was queued locally. */
   offline: boolean;
+  /**
+   * True when a marshal admitted this holder by hand rather than by scanning.
+   * A manual admission is a human judgement call — if a pass is disputed later,
+   * the organizer needs to tell vouched-for entries from verified ones.
+   */
+  manual: boolean;
 }
 
 /** One entry in a bulk `/api/sync` upload. */
@@ -156,6 +162,7 @@ export interface SyncScanPayload {
   check_in_time: number;
   device_id: string;
   offline: boolean;
+  manual: boolean;
 }
 
 export interface SyncResultItem {

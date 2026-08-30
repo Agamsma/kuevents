@@ -618,8 +618,8 @@ function SuccessPanel({ onAnother }: { onAnother: () => void }) {
               Sent for review
             </h1>
             <p className="mx-auto mt-3 max-w-xs text-[15px] leading-relaxed text-bone-dim">
-              An organizer will look at it shortly. Once approved, it appears on
-              the campus directory and students can reserve passes.
+              An organizer will look at it shortly. You can follow the decision
+              — and read any feedback — under your proposals.
             </p>
           </div>
 
@@ -630,9 +630,9 @@ function SuccessPanel({ onAnother }: { onAnother: () => void }) {
               Back to events
             </Button>
             <Button asChild>
-              <Link href="/events/request">
+              <Link href="/proposals">
                 <Check className="size-4" />
-                Propose another
+                Track it
               </Link>
             </Button>
           </div>

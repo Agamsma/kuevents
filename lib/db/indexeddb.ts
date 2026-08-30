@@ -42,6 +42,13 @@ export interface QueuedScan {
   scanned_by: string;
   check_in_time: number;
   device_id: string;
+  /**
+   * 1 when a marshal admitted this holder by hand instead of scanning their
+   * code. Carried all the way to `check_in_logs` — a manual admission is a
+   * human judgement call, and if a pass is later disputed the organizer needs
+   * to see which admissions were vouched for rather than verified.
+   */
+  manual: 0 | 1;
   /** Set once an upload attempt is in flight, so a second flush skips it. */
   in_flight: 0 | 1;
   attempts: number;
@@ -109,7 +116,7 @@ export async function replaceRoster(
 }
 
 export type ScanOutcome =
-  | { kind: "admitted"; ticket: CachedTicket; at: number }
+  | { kind: "admitted"; ticket: CachedTicket; at: number; manual?: boolean }
   | { kind: "duplicate"; ticket: CachedTicket; originalCheckIn: number | null }
   | { kind: "cancelled"; ticket: CachedTicket }
   | { kind: "wrong_event"; ticket: CachedTicket; expectedEventId: string }
@@ -129,8 +136,10 @@ export async function resolveScan(params: {
   scannedBy: string;
   deviceId: string;
   now?: number;
+  /** True when a marshal admitted this holder by hand, not by camera. */
+  manual?: boolean;
 }): Promise<ScanOutcome> {
-  const { qrHash, eventId, scannedBy, deviceId } = params;
+  const { qrHash, eventId, scannedBy, deviceId, manual = false } = params;
   const now = params.now ?? Date.now();
 
   return gateDb.transaction(
@@ -172,13 +181,49 @@ export async function resolveScan(params: {
         scanned_by: scannedBy,
         check_in_time: now,
         device_id: deviceId,
+        manual: manual ? 1 : 0,
         in_flight: 0,
         attempts: 0,
       });
 
-      return { kind: "admitted", ticket: admitted, at: now };
+      return { kind: "admitted", ticket: admitted, at: now, manual };
     },
   );
+}
+
+/**
+ * Finds people on the cached roster by name, email or pass number.
+ *
+ * The fallback for when a code will not scan — a cracked screen, a phone that
+ * died in the queue, a display too dim for the camera. Without this the marshal
+ * has no way through and the holder is turned away at the door despite holding
+ * a valid pass.
+ *
+ * Filtered in memory: IndexedDB has no substring index, and a roster is at most
+ * a few thousand rows on a device that is doing nothing else.
+ */
+export async function searchRoster(
+  eventId: string,
+  term: string,
+  limit = 12,
+): Promise<CachedTicket[]> {
+  const needle = term.trim().toLowerCase();
+  if (needle.length < 2) return [];
+
+  const matches = await gateDb.cached_tickets
+    .where("event_id")
+    .equals(eventId)
+    .filter(
+      (ticket) =>
+        ticket.user_name.toLowerCase().includes(needle) ||
+        ticket.user_email.toLowerCase().includes(needle) ||
+        ticket.ticket_id.toLowerCase().endsWith(needle),
+    )
+    .limit(limit)
+    .toArray();
+
+  // People still outside first — they are who the marshal is looking for.
+  return matches.sort((a, b) => a.checked_in - b.checked_in);
 }
 
 /** Claims up to `limit` pending scans, marking them in-flight. */

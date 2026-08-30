@@ -25,6 +25,7 @@ import {
   purgeEvent,
   recoverStrandedScans,
   releaseScans,
+  searchRoster,
   replaceRoster,
   resolveScan,
   rosterStats,
@@ -163,6 +164,116 @@ describe("resolveScan", () => {
 
     assert.equal(result.kind, "duplicate");
     assert.equal(await pendingScanCount(), 0);
+  });
+});
+
+describe("manual admit", () => {
+  test("admits by hand and flags the queued scan as manual", async () => {
+    await seed([ticket()]);
+
+    const result = await resolveScan({
+      qrHash: "a".repeat(64),
+      eventId: EVENT,
+      scannedBy: SCANNER,
+      deviceId: DEVICE,
+      manual: true,
+    });
+
+    assert.equal(result.kind, "admitted");
+
+    const [queued] = await gateDb.sync_queue.toArray();
+    assert.equal(
+      queued.manual,
+      1,
+      "a hand-entered admission must be distinguishable in the audit trail",
+    );
+  });
+
+  test("a normal scan is not flagged as manual", async () => {
+    await seed([ticket()]);
+    await scan("a".repeat(64));
+
+    const [queued] = await gateDb.sync_queue.toArray();
+    assert.equal(queued.manual, 0);
+  });
+
+  test("manual admit is a different input, not a different rule", async () => {
+    // The whole safety argument for the fallback: it goes through the same
+    // transaction, so it cannot admit a cancelled pass or double-admit anyone.
+    await seed([ticket({ status: "cancelled" })]);
+
+    const cancelled = await resolveScan({
+      qrHash: "a".repeat(64),
+      eventId: EVENT,
+      scannedBy: SCANNER,
+      deviceId: DEVICE,
+      manual: true,
+    });
+    assert.equal(cancelled.kind, "cancelled");
+    assert.equal(await pendingScanCount(), 0);
+
+    await gateDb.cached_tickets.clear();
+    await seed([ticket()]);
+
+    await scan("a".repeat(64));
+    const second = await resolveScan({
+      qrHash: "a".repeat(64),
+      eventId: EVENT,
+      scannedBy: SCANNER,
+      deviceId: DEVICE,
+      manual: true,
+    });
+
+    assert.equal(
+      second.kind,
+      "duplicate",
+      "admitting by hand must not bypass the one-scan rule",
+    );
+  });
+});
+
+describe("roster search", () => {
+  test("finds people by name, email and pass tail", async () => {
+    await seed([
+      ticket({ qr_hash: "a".repeat(64), ticket_id: "tkt_abc123", user_name: "Aarav Shah" }),
+      ticket({
+        qr_hash: "b".repeat(64),
+        ticket_id: "tkt_xyz789",
+        user_name: "Priya Nair",
+        user_email: "priya@karnavatiuniversity.edu.in",
+      }),
+    ]);
+
+    assert.equal((await searchRoster(EVENT, "aarav"))[0]?.user_name, "Aarav Shah");
+    assert.equal((await searchRoster(EVENT, "priya@"))[0]?.user_name, "Priya Nair");
+    assert.equal((await searchRoster(EVENT, "xyz789"))[0]?.ticket_id, "tkt_xyz789");
+  });
+
+  test("is case-insensitive and ignores one-character terms", async () => {
+    await seed([ticket({ user_name: "Aarav Shah" })]);
+
+    assert.equal((await searchRoster(EVENT, "SHAH")).length, 1);
+    assert.equal(
+      (await searchRoster(EVENT, "a")).length,
+      0,
+      "a single letter would match most of the roster and is not a search",
+    );
+  });
+
+  test("lists people still outside before those already admitted", async () => {
+    await seed([
+      ticket({ qr_hash: "a".repeat(64), ticket_id: "t1", user_name: "Shah, Aarav" }),
+      ticket({ qr_hash: "b".repeat(64), ticket_id: "t2", user_name: "Shah, Bina" }),
+    ]);
+
+    await scan("a".repeat(64));
+
+    const results = await searchRoster(EVENT, "shah");
+    assert.equal(
+      results[0].user_name,
+      "Shah, Bina",
+      "the marshal is looking for whoever is still at the door",
+    );
   });
 });
 

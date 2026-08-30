@@ -30,7 +30,7 @@ export function SiteHeader() {
   const nav = [
     { href: "/", label: "Events", show: true },
     { href: "/tickets", label: "My passes", show: Boolean(user) },
-    { href: "/events/request", label: "Propose", show: Boolean(user) },
+    { href: "/proposals", label: "My proposals", show: Boolean(user) },
     { href: "/dashboard/requests", label: "Requests", show: canReview },
     { href: "/organizer", label: "Organize", show: canReview },
     { href: "/scanner", label: "Gate", show: canScan },

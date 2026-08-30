@@ -252,6 +252,10 @@ async function writeAuditLog({
     device_id: scan.device_id,
     result,
     offline: scan.offline ?? true,
+    // Preserved verbatim from the device: a manual admission is a human
+    // vouching for someone whose code would not scan, and that distinction has
+    // to survive into the audit trail or a disputed entry cannot be untangled.
+    manual: scan.manual ?? false,
     // Whose token carried this record to the server, which may differ from the
     // marshal who physically scanned it.
     uploaded_by: caller.uid,

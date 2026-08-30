@@ -33,6 +33,7 @@ const PROTECTED_PREFIXES = [
   "/scanner",
   "/organizer",
   "/tickets",
+  "/proposals",
   "/admin",
   "/dashboard",
   "/events/request",

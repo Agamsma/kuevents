@@ -81,6 +81,7 @@ export async function flushSyncQueue(
         check_in_time: scan.check_in_time,
         device_id: scan.device_id,
         offline: true,
+        manual: scan.manual === 1,
       }));
 
       let response: Response;
