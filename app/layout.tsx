@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 
 import { AuthProvider } from "@/lib/auth-context";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 import { Toaster } from "@/components/ui/toast";
 import "./globals.css";
@@ -37,13 +38,20 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
+const SITE_URL = "https://kuevents.in";
+
+const DESCRIPTION =
+  "Everything happening on the Karnavati University campus. Reserve a pass in two taps — it lives on your phone and the gate reads it even with no signal.";
+
 export const metadata: Metadata = {
+  // Resolves every relative URL below, and any per-page openGraph image, to the
+  // live domain. Without it Next warns and social cards resolve to localhost.
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "KU Events",
+    default: "KU Events — everything happening on campus",
     template: "%s · KU Events",
   },
-  description:
-    "Event passes and gate check-in for Karnavati University. Your pass lives on your phone; the gate works without signal.",
+  description: DESCRIPTION,
   applicationName: "KU Events",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -51,6 +59,26 @@ export const metadata: Metadata = {
     title: "KU Events",
     statusBarStyle: "black-translucent",
   },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "KU Events",
+    title: "KU Events — everything happening on campus",
+    description: DESCRIPTION,
+    url: SITE_URL,
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KU Events — everything happening on campus",
+    description: DESCRIPTION,
+  },
+  // Interior pages set their own noindex; the landing page is the only one
+  // that should ever be crawled.
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
@@ -77,10 +105,22 @@ export default function RootLayout({
       <body
         className={`${fraunces.variable} ${instrument.variable} ${jetbrains.variable} antialiased`}
       >
+        {/* Visible only once focused. Every page's header carries 5–7 nav links
+            before the content starts; without this a keyboard user tabs through
+            all of them on every single navigation. */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-full focus:bg-crimson focus:px-5 focus:py-3 focus:text-sm focus:font-medium focus:text-[#1a0207]"
+        >
+          Skip to content
+        </a>
+
         <AuthProvider>
-          {children}
-          <Toaster />
-          <ServiceWorkerRegistrar />
+          <MotionProvider>
+            {children}
+            <Toaster />
+            <ServiceWorkerRegistrar />
+          </MotionProvider>
         </AuthProvider>
       </body>
     </html>

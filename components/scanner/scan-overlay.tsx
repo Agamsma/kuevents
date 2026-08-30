@@ -41,7 +41,22 @@ export function ScanOverlay({
     const hold = outcome.kind === "admitted" ? autoDismissMs : autoDismissMs + 1800;
     const timer = window.setTimeout(onDismiss, hold);
 
-    return () => window.clearTimeout(timer);
+    // The overlay covers the whole viewport, so a marshal working a tablet with
+    // a keyboard (or an assistive switch) needs a way past it that is not a tap
+    // on the screen.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onDismiss();
+      }
+    };
+
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("keydown", onKey);
+    };
   }, [outcome, onDismiss, autoDismissMs]);
 
   if (!outcome) return null;
@@ -71,7 +86,7 @@ export function ScanOverlay({
       ) : null}
 
       <div className="absolute inset-x-0 bottom-10 font-mono text-[10px] uppercase tracking-[0.24em] opacity-50">
-        Tap to continue
+        Tap or press any key to continue
       </div>
     </div>
   );

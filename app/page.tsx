@@ -21,7 +21,7 @@ export default function LandingPage() {
   return (
     <>
       <SiteHeader />
-      <main>
+      <main id="main" tabIndex={-1} className="outline-none">
         <Hero />
         <EventDirectory />
       </main>

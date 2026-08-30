@@ -2,16 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Check,
-  Download,
-  RefreshCw,
-  Search,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Download, Search } from "lucide-react";
 
-import { fetchEvent, fetchEventTickets } from "@/lib/firestore-queries";
+import { fetchEvent, subscribeEventTickets } from "@/lib/firestore-queries";
 import { formatDateTime, formatTime, shortCode } from "@/lib/format";
 import type { EventDoc, TicketDoc } from "@/lib/types";
 import { AppShell } from "@/components/app-shell";
@@ -33,51 +26,71 @@ export function AttendeeList({ eventId }: { eventId: string }) {
   const [event, setEvent] = useState<EventDoc | null>(null);
   const [tickets, setTickets] = useState<TicketDoc[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [missing, setMissing] = useState(false);
+  /** Whether the roster subscription is currently connected. */
+  const [live, setLive] = useState(false);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
-  const load = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
+  // The event itself does not change during a gate, so it is fetched once.
+  useEffect(() => {
+    let cancelled = false;
 
-    try {
-      const [eventDoc, roster] = await Promise.all([
-        fetchEvent(eventId),
-        fetchEventTickets(eventId),
-      ]);
-
-      if (!eventDoc) {
-        setMissing(true);
-        return;
-      }
-
-      setEvent(eventDoc);
-      // Admitted first when refreshing a live gate is the wrong default — an
-      // organizer scans this list looking for a specific name, so sort by name.
-      setTickets(
-        [...roster].sort((a, b) =>
-          a.user_name.localeCompare(b.user_name, "en-IN"),
-        ),
-      );
-    } catch (error) {
-      console.error("[attendees] load failed", error);
-      toast.error("Could not load attendees", {
-        id: "attendees",
-        description: "Check your connection and retry.",
+    fetchEvent(eventId)
+      .then((eventDoc) => {
+        if (cancelled) return;
+        if (!eventDoc) setMissing(true);
+        else setEvent(eventDoc);
+      })
+      .catch((error) => {
+        console.error("[attendees] event load failed", error);
+        if (!cancelled) setMissing(true);
       });
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [eventId]);
 
+  /*
+   * The roster is live.
+   *
+   * This is the screen an organizer stands at the door with. Gate devices sync
+   * their check-ins in batches, so the count moves in bursts — having to tap
+   * refresh to find out whether the queue outside is clearing is exactly the
+   * wrong ergonomics at that moment.
+   *
+   * Sorted by name rather than by arrival: someone reading this is looking for
+   * a specific person, and a list that reorders itself under them as people
+   * walk in would be unusable.
+   *
+   * setState only ever runs from the snapshot callback, never synchronously in
+   * the effect body.
+   */
   useEffect(() => {
-    // Async loader: every setState sits behind an await. See events-home.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
-  }, [load]);
+    return subscribeEventTickets(
+      eventId,
+      (roster) => {
+        setTickets(
+          [...roster].sort((a, b) =>
+            a.user_name.localeCompare(b.user_name, "en-IN"),
+          ),
+        );
+        setLoading(false);
+        setLive(true);
+      },
+      (error) => {
+        console.error("[attendees] subscription failed", error);
+        setLoading(false);
+        setLive(false);
+        toast.error("Lost the live connection", {
+          id: "attendees",
+          description: "The count may be stale. Reload to reconnect.",
+        });
+      },
+    );
+  }, [eventId]);
 
   const stats = useMemo(() => {
     const issued = tickets.filter((t) => t.status === "issued");
@@ -174,16 +187,26 @@ export function AttendeeList({ eventId }: { eventId: string }) {
           </h1>
         </div>
 
-        <div className="flex shrink-0 gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => load(true)}
-            disabled={refreshing}
-            aria-label="Refresh the attendee list"
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Replaces the old refresh button. It says the same thing the button
+              used to imply — "this is current" — without asking anyone to act
+              on it mid-queue. */}
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${
+              live
+                ? "border-admit/30 bg-admit/[0.08] text-admit"
+                : "border-line text-bone-faint"
+            }`}
           >
-            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
-          </Button>
+            {live ? (
+              <span className="relative flex size-1.5">
+                <span className="animate-live-pulse absolute inline-flex size-full rounded-full bg-admit" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-admit" />
+              </span>
+            ) : null}
+            {live ? "Live" : "Offline"}
+          </span>
+
           <Button
             size="sm"
             variant="outline"

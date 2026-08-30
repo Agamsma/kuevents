@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Inbox, Loader2, MapPin, Users, X } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
-import { fetchPendingEvents } from "@/lib/firestore-queries";
+import { subscribePendingEvents } from "@/lib/firestore-queries";
 import { formatDateTime, formatDayNum, formatMonthAbbr } from "@/lib/format";
 import { TRACK_LABELS, type EventDoc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -37,25 +37,33 @@ export function ApprovalBoard() {
   const [decision, setDecision] = useState<Decision>(null);
   const [working, setWorking] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      setPending(await fetchPendingEvents());
-    } catch (error) {
-      console.error("[requests] load failed", error);
-      toast.error("Could not load proposals", {
-        id: "requests",
-        description: "Check your connection and retry.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  /*
+   * Live, not a snapshot.
+   *
+   * Two organizers can work this queue at once. With a fetch-and-refresh list
+   * they can both open the same proposal, and the second one decides an event
+   * the first already handled. A subscription makes rows leave the board the
+   * moment anybody acts on them.
+   *
+   * setState only ever runs from the snapshot callback, never synchronously in
+   * the effect body.
+   */
   useEffect(() => {
-    // Async loader: every setState sits behind an await. See event-directory.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
-  }, [load]);
+    return subscribePendingEvents(
+      (events) => {
+        setPending(events);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("[requests] subscription failed", error);
+        setLoading(false);
+        toast.error("Lost the live connection", {
+          id: "requests",
+          description: "Proposals may be out of date. Reload to reconnect.",
+        });
+      },
+    );
+  }, []);
 
   const decide = useCallback(
     async (event: EventDoc, status: "published" | "rejected", extras: {
@@ -79,8 +87,9 @@ export function ApprovalBoard() {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error ?? "Could not save that.");
 
-        // Drop it from the queue immediately — it is no longer pending, and
-        // leaving it there invites a second organizer to decide it again.
+        // Drop it locally so the click feels instant. The subscription will
+        // emit the same removal a moment later and supersede this — but the
+        // round trip is long enough to feel like a dead button without it.
         setPending((current) => current.filter((e) => e.id !== event.id));
         setDecision(null);
 
@@ -109,7 +118,11 @@ export function ApprovalBoard() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 pb-24 pt-28 sm:px-6">
+    <main
+      id="main"
+      tabIndex={-1}
+      className="mx-auto w-full max-w-4xl px-5 pb-24 pt-28 outline-none sm:px-6"
+    >
       <FieldLabel>Review queue</FieldLabel>
       <div className="mt-3 flex items-end justify-between gap-4">
         <h1 className="display text-[clamp(2rem,6vw,2.75rem)] text-bone">
@@ -163,7 +176,7 @@ export function ApprovalBoard() {
           setDecision((d) => (d ? { kind, event: d.event } : null))
         }
       />
-    </div>
+    </main>
   );
 }
 

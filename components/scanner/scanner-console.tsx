@@ -356,7 +356,11 @@ export function ScannerConsole() {
   const pct = stats.total > 0 ? (stats.checkedIn / stats.total) * 100 : 0;
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pb-8 pt-4">
+    <main
+      id="main"
+      tabIndex={-1}
+      className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pb-8 pt-4 outline-none"
+    >
       <ScanOverlay outcome={outcome} onDismiss={() => setOutcome(null)} />
 
       {/* ── Status bar ─────────────────────────────────────────────────── */}
@@ -423,8 +427,14 @@ export function ScannerConsole() {
 
             <div className="px-5 pb-5 pt-4">
               {/* The count is the number that matters, so it is the biggest
-                  thing on the card. */}
-              <div className="flex items-end justify-between gap-4">
+                  thing on the card. `aria-live` announces it as people are
+                  admitted, so a marshal using a screen reader hears the door
+                  count move without hunting for it. */}
+              <div
+                className="flex items-end justify-between gap-4"
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 <div>
                   <FieldLabel>Admitted</FieldLabel>
                   <div className="display mt-1 text-[2.5rem] leading-none text-admit tabular">
@@ -638,6 +648,6 @@ export function ScannerConsole() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </main>
   );
 }

@@ -1,6 +1,14 @@
 "use client";
 
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 import { toMillis } from "@/lib/format";
@@ -126,4 +134,63 @@ export async function fetchEventTickets(eventId: string): Promise<TicketDoc[]> {
   );
 
   return snap.docs.map((d) => normaliseTicket(d.id, d.data()));
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Live subscriptions
+
+   Used by the two screens somebody watches while an event is actually running:
+   the review queue and the door count. Both take the same query shape as their
+   one-shot counterparts above, so the same "no composite indexes" and
+   "provably within the security rules" constraints apply.
+
+   Each returns an unsubscribe function — call it on unmount, or the listener
+   outlives the component and keeps billing reads.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Proposals awaiting a decision, live.
+ *
+ * With two organizers working the queue at once, a snapshot-and-refresh list
+ * lets both open the same proposal and one of them decide an event the other
+ * already handled. A live query makes rows leave the board the moment somebody
+ * else acts on them.
+ */
+export function subscribePendingEvents(
+  onChange: (events: EventDoc[]) => void,
+  onError: (error: Error) => void,
+): () => void {
+  return onSnapshot(
+    query(collection(db, "events"), where("status", "==", "pending")),
+    (snap) => {
+      onChange(
+        snap.docs
+          .map((d) => normaliseEvent(d.id, d.data()))
+          .sort((a, b) => a.created_at - b.created_at),
+      );
+    },
+    onError,
+  );
+}
+
+/**
+ * One event's roster, live.
+ *
+ * This is the screen an organizer stands at the door with. Gate devices sync
+ * their check-ins in batches, so the count moves in bursts — having to tap
+ * refresh to find out whether the queue outside is clearing is exactly the
+ * wrong ergonomics at that moment.
+ */
+export function subscribeEventTickets(
+  eventId: string,
+  onChange: (tickets: TicketDoc[]) => void,
+  onError: (error: Error) => void,
+): () => void {
+  return onSnapshot(
+    query(collection(db, "tickets"), where("event_id", "==", eventId)),
+    (snap) => {
+      onChange(snap.docs.map((d) => normaliseTicket(d.id, d.data())));
+    },
+    onError,
+  );
 }

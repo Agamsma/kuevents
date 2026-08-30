@@ -147,7 +147,11 @@ export function UserManagement() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 pb-24 pt-28 sm:px-6">
+    <main
+      id="main"
+      tabIndex={-1}
+      className="mx-auto w-full max-w-4xl px-5 pb-24 pt-28 outline-none sm:px-6"
+    >
       <FieldLabel>Super admin</FieldLabel>
       <h1 className="display mt-3 text-[clamp(2rem,6vw,2.75rem)] text-bone">
         People &amp; roles
@@ -290,6 +294,6 @@ export function UserManagement() {
       <p className="mt-6 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-bone-faint">
         Super admin is granted out of band, never from this panel
       </p>
-    </div>
+    </main>
   );
 }

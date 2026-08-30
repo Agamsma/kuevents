@@ -243,7 +243,11 @@ export function ProposalForm() {
   if (done) return <SuccessPanel onAnother={() => router.push("/")} />;
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-24 pt-28 sm:px-6">
+    <main
+      id="main"
+      tabIndex={-1}
+      className="mx-auto w-full max-w-2xl px-5 pb-24 pt-28 outline-none sm:px-6"
+    >
       <Link
         href="/"
         className="mb-7 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-bone-faint transition-colors hover:text-bone"
@@ -417,7 +421,7 @@ export function ProposalForm() {
           )}
         </div>
       </Stub>
-    </div>
+    </main>
   );
 }
 
