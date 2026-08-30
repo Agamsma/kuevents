@@ -16,6 +16,35 @@ const firebaseConfig = {
 };
 
 /**
+ * Fail loudly, and in the right place, when the config is missing.
+ *
+ * Without this, a deploy with no environment variables dies during prerender
+ * with `FirebaseError: auth/invalid-api-key` attributed to `/_not-found` — a
+ * page that has nothing to do with Firebase. That error sends people hunting
+ * through their 404 handling instead of their Vercel project settings.
+ *
+ * `NEXT_PUBLIC_*` values are inlined at build time, so a missing one here means
+ * the variable was absent when `next build` ran, not at runtime.
+ */
+const missing = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => `NEXT_PUBLIC_FIREBASE_${camelToScreamingSnake(key)}`);
+
+if (missing.length > 0) {
+  throw new Error(
+    `Firebase is not configured. Missing: ${missing.join(", ")}.\n` +
+      "Locally: copy .env.example to .env.local and fill it in.\n" +
+      "On Vercel: add these under Project Settings > Environment Variables, " +
+      "then redeploy — NEXT_PUBLIC_* values are baked in at build time, so a " +
+      "variable added after a build will not appear until you rebuild.",
+  );
+}
+
+function camelToScreamingSnake(value: string): string {
+  return value.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toUpperCase();
+}
+
+/**
  * `getApps()` guard: Next.js hot-reloading re-evaluates this module on every
  * edit, and `initializeApp` throws `duplicate-app` the second time around.
  */
