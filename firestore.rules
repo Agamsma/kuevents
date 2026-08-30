@@ -1,0 +1,123 @@
+rules_version = '2';
+
+/*
+ * KU Events security rules.
+ *
+ * These are the real authorisation boundary — the client-side AuthGuard only
+ * decides what to render. The invariants that matter:
+ *
+ *  1. A student reads their own ticket and nobody else's.
+ *  2. No client can ever write `checked_in`, `qr_hash`, ticket `status`, or a
+ *     user's `role`. Check-ins arrive through /api/sync and role changes through
+ *     /api/admin/users, both of which use the Admin SDK and bypass these rules.
+ *     That is what stops a student marking their own pass valid, or promoting
+ *     themselves to organizer, from the browser console.
+ *  3. Event proposals are created server-side with status 'pending', and stay
+ *     invisible to everyone except their proposer and the review board.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUniversity() {
+      return signedIn()
+        && request.auth.token.email != null
+        && request.auth.token.email.matches('^[^@]+@karnavatiuniversity[.]edu[.]in$');
+    }
+
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isStaff() {
+      return isUniversity() && myRole() in ['scanner', 'organizer', 'superadmin'];
+    }
+
+    function isOrganizer() {
+      return isUniversity() && myRole() in ['organizer', 'superadmin'];
+    }
+
+    function isSuperAdmin() {
+      return isUniversity() && myRole() == 'superadmin';
+    }
+
+    // ── users ────────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isUniversity() && (request.auth.uid == uid || isSuperAdmin());
+
+      // First login creates the profile — but only as a student, and only for
+      // yourself. Self-promotion is the obvious attack here.
+      allow create: if isUniversity()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role == 'student';
+
+      // Display fields only. `role` moves through /api/admin/users, never here.
+      allow update: if isUniversity()
+        && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email;
+
+      allow delete: if false;
+    }
+
+    // ── events ───────────────────────────────────────────────────────────
+    match /events/{eventId} {
+      /*
+       * Reads split three ways:
+       *
+       *  - anyone in the university may read a published/live/ended event
+       *  - a proposer may read their own proposal, whatever its status
+       *  - organizers may read everything, which is what the review board and
+       *    the organizer dashboard need
+       *
+       * Note for queries: Firestore requires a query to be *provably* within
+       * these rules. `fetchPublishedEvents` therefore filters on
+       * `status == 'published'` rather than sorting client-side over the whole
+       * collection — drop that constraint and the query starts failing for
+       * students even though single-document reads still work.
+       */
+      allow read: if isUniversity() && (
+        resource.data.status in ['published', 'live', 'ended', 'cancelled']
+        || resource.data.created_by == request.auth.uid
+        || isOrganizer()
+      );
+
+      // Proposals and events are both minted server-side so that `status`,
+      // `tickets_issued` and `organizer_uid` are never client-controlled.
+      allow create: if false;
+
+      // Organizers publish, reject and run events through /api/events. Direct
+      // client writes would let an organizer edit `tickets_issued` and desync
+      // capacity from the roster.
+      allow update: if false;
+
+      allow delete: if isSuperAdmin();
+    }
+
+    // ── tickets ──────────────────────────────────────────────────────────
+    match /tickets/{ticketId} {
+      // Holders read their own pass. Staff read the whole roster so the gate
+      // scanner can cache it for offline use.
+      allow read: if isUniversity()
+        && (resource.data.user_id == request.auth.uid || isStaff());
+
+      // Every write path goes through the Admin SDK. Nothing a browser sends
+      // may create a ticket, void one, or flip `checked_in`.
+      allow create, update, delete: if false;
+    }
+
+    // ── check_in_logs ────────────────────────────────────────────────────
+    match /check_in_logs/{logId} {
+      // Append-only audit trail, written server-side only. Organizers read it
+      // to reconcile a disputed entry after the event.
+      allow read: if isOrganizer();
+      allow write: if false;
+    }
+  }
+}

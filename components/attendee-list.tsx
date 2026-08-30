@@ -1,0 +1,371 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Check,
+  Download,
+  RefreshCw,
+  Search,
+} from "lucide-react";
+
+import { fetchEvent, fetchEventTickets } from "@/lib/firestore-queries";
+import { formatDateTime, formatTime, shortCode } from "@/lib/format";
+import type { EventDoc, TicketDoc } from "@/lib/types";
+import { AppShell } from "@/components/app-shell";
+import { Button } from "@/components/ui/button";
+import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "@/components/ui/toast";
+
+type Filter = "all" | "inside" | "outside";
+
+export function AttendeeList({ eventId }: { eventId: string }) {
+  const [event, setEvent] = useState<EventDoc | null>(null);
+  const [tickets, setTickets] = useState<TicketDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [missing, setMissing] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+
+  const load = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+
+    try {
+      const [eventDoc, roster] = await Promise.all([
+        fetchEvent(eventId),
+        fetchEventTickets(eventId),
+      ]);
+
+      if (!eventDoc) {
+        setMissing(true);
+        return;
+      }
+
+      setEvent(eventDoc);
+      // Admitted first when refreshing a live gate is the wrong default — an
+      // organizer scans this list looking for a specific name, so sort by name.
+      setTickets(
+        [...roster].sort((a, b) =>
+          a.user_name.localeCompare(b.user_name, "en-IN"),
+        ),
+      );
+    } catch (error) {
+      console.error("[attendees] load failed", error);
+      toast.error("Could not load attendees", {
+        id: "attendees",
+        description: "Check your connection and retry.",
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [eventId]);
+
+  useEffect(() => {
+    // Async loader: every setState sits behind an await. See events-home.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
+
+  const stats = useMemo(() => {
+    const issued = tickets.filter((t) => t.status === "issued");
+    return {
+      total: issued.length,
+      inside: issued.filter((t) => t.checked_in).length,
+      voided: tickets.length - issued.length,
+    };
+  }, [tickets]);
+
+  const visible = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+
+    return tickets.filter((ticket) => {
+      if (filter === "inside" && !ticket.checked_in) return false;
+      if (filter === "outside" && ticket.checked_in) return false;
+
+      if (!needle) return true;
+
+      return (
+        ticket.user_name.toLowerCase().includes(needle) ||
+        ticket.user_email.toLowerCase().includes(needle) ||
+        shortCode(ticket.id).toLowerCase().includes(needle)
+      );
+    });
+  }, [tickets, search, filter]);
+
+  const exportCsv = useCallback(() => {
+    if (!event) return;
+
+    const rows = [
+      ["Name", "Email", "Pass no.", "Status", "Checked in at"],
+      ...tickets.map((t) => [
+        t.user_name,
+        t.user_email,
+        shortCode(t.id),
+        t.status !== "issued" ? t.status : t.checked_in ? "admitted" : "not arrived",
+        t.check_in_time ? new Date(t.check_in_time).toISOString() : "",
+      ]),
+    ];
+
+    const csv = rows
+      // Quote every field and double any inner quotes — names with commas are
+      // common and would otherwise shift every later column.
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+
+    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${slugify(event.title)}-attendees.csv`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+    toast.success("Attendee list downloaded", { id: "export" });
+  }, [event, tickets]);
+
+  if (missing) {
+    return (
+      <AppShell>
+        <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-5 text-center">
+          <AlertTriangle className="size-8 text-refuse" />
+          <p className="max-w-[17rem] text-sm leading-relaxed text-bone-dim">
+            This event does not exist, or it has been taken down.
+          </p>
+          <Button variant="outline" asChild>
+            <Link href="/organizer">
+              <ArrowLeft className="size-4" />
+              Your events
+            </Link>
+          </Button>
+        </div>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell>
+      <Link
+        href="/organizer"
+        className="mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-bone-faint transition-colors hover:text-bone"
+      >
+        <ArrowLeft className="size-3" />
+        Your events
+      </Link>
+
+      <div className="mb-7 flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <FieldLabel>Attendees</FieldLabel>
+          <h1 className="display mt-2 truncate text-[2rem] text-bone sm:text-[2.5rem]">
+            {event?.title ?? "…"}
+          </h1>
+        </div>
+
+        <div className="flex shrink-0 gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => load(true)}
+            disabled={refreshing}
+            aria-label="Refresh the attendee list"
+          >
+            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={exportCsv}
+            disabled={tickets.length === 0}
+          >
+            <Download className="size-3.5" />
+            CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Door count ─────────────────────────────────────────────────── */}
+      <Stub className="mb-5 overflow-hidden">
+        <div className="flex items-end justify-between gap-4 px-5 pb-4 pt-4">
+          <div>
+            <FieldLabel>Inside</FieldLabel>
+            <div className="display mt-1 text-[2.5rem] leading-none text-admit tabular">
+              {stats.inside}
+              <span className="text-[1.25rem] text-bone-faint">/{stats.total}</span>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <FieldLabel>Yet to arrive</FieldLabel>
+            <div className="display mt-1 text-[1.75rem] leading-none text-bone tabular">
+              {stats.total - stats.inside}
+            </div>
+          </div>
+        </div>
+
+        <div className="px-5 pb-4">
+          <div
+            className="h-1 overflow-hidden rounded-full bg-white/[0.07]"
+            role="progressbar"
+            aria-valuenow={stats.total ? Math.round((stats.inside / stats.total) * 100) : 0}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Share of attendees admitted"
+          >
+            <div
+              className="h-full rounded-full bg-admit transition-[width] duration-500"
+              style={{
+                width: `${stats.total ? (stats.inside / stats.total) * 100 : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {stats.voided > 0 ? (
+          <>
+            <Perforation className="mx-5" />
+            <div className="px-5 py-3 font-mono text-[10px] uppercase tracking-[0.12em] text-refuse">
+              {stats.voided} cancelled or refunded — not counted above
+            </div>
+          </>
+        ) : null}
+      </Stub>
+
+      {/* ── Search and filter ──────────────────────────────────────────── */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-bone-faint" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name, email or pass no."
+            aria-label="Search attendees"
+            className="w-full rounded-md border border-line bg-white/[0.03] py-2 pl-9 pr-3 text-sm text-bone placeholder:text-bone-faint focus:border-crimson focus:outline-none"
+          />
+        </div>
+
+        <div className="flex gap-1 rounded-md border border-line p-1">
+          {(
+            [
+              ["all", "All"],
+              ["inside", "Inside"],
+              ["outside", "Outside"],
+            ] as const
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setFilter(value)}
+              aria-pressed={filter === value}
+              className={`rounded-sm px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors ${
+                filter === value
+                  ? "bg-white/[0.09] text-bone"
+                  : "text-bone-faint hover:text-bone-dim"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── The list ───────────────────────────────────────────────────── */}
+      {loading ? (
+        <div className="stub h-64 animate-pulse" />
+      ) : tickets.length === 0 ? (
+        <Stub notched className="px-6 py-14 text-center">
+          <div className="mx-auto max-w-xs">
+            <div className="display text-[1.5rem] text-bone">Nobody yet</div>
+            <p className="mt-2 text-sm leading-relaxed text-bone-dim">
+              Passes appear here the moment students book them.
+            </p>
+          </div>
+        </Stub>
+      ) : visible.length === 0 ? (
+        <Stub className="px-6 py-12 text-center text-sm text-bone-dim">
+          No attendee matches {search ? `“${search}”` : "that filter"}.
+        </Stub>
+      ) : (
+        <Stub className="overflow-hidden py-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Attendee</TableHead>
+                <TableHead>Pass</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visible.map((ticket) => (
+                <TableRow key={ticket.id}>
+                  <TableCell className="max-w-[13rem]">
+                    <div className="truncate font-medium text-bone">
+                      {ticket.user_name}
+                    </div>
+                    <div className="truncate font-mono text-[10px] text-bone-faint">
+                      {ticket.user_email}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="font-mono text-[11px] tracking-wider text-bone-dim">
+                    {shortCode(ticket.id)}
+                  </TableCell>
+
+                  <TableCell className="text-right">
+                    {ticket.status !== "issued" ? (
+                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-refuse">
+                        {ticket.status}
+                      </span>
+                    ) : ticket.checked_in ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Check className="size-3 text-admit" />
+                        <span
+                          className="font-mono text-[11px] text-admit tabular"
+                          title={formatDateTime(ticket.check_in_time)}
+                        >
+                          {formatTime(ticket.check_in_time)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-bone-faint">
+                        Not in
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Stub>
+      )}
+
+      {visible.length > 0 ? (
+        <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-bone-faint">
+          Showing {visible.length} of {tickets.length}
+        </p>
+      ) : null}
+    </AppShell>
+  );
+}
+
+function slugify(value: string): string {
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "event"
+  );
+}

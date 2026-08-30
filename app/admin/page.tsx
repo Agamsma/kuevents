@@ -1,0 +1,25 @@
+import type { Metadata } from "next";
+
+import { AuthGuard } from "@/components/auth-guard";
+import { SiteHeader } from "@/components/site-header";
+import { UserManagement } from "@/components/admin/user-management";
+
+export const metadata: Metadata = {
+  title: "Admin",
+  robots: { index: false, follow: false },
+};
+
+/**
+ * Strictly `superadmin`.
+ *
+ * The guard here only decides what renders — `/api/admin/users` re-checks the
+ * role on every request, which is the boundary that actually holds.
+ */
+export default function AdminPage() {
+  return (
+    <AuthGuard allowedRoles={["superadmin"]}>
+      <SiteHeader />
+      <UserManagement />
+    </AuthGuard>
+  );
+}

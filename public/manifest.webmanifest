@@ -1,0 +1,26 @@
+{
+  "name": "KU Events",
+  "short_name": "KU Events",
+  "description": "Event passes and offline gate check-in for Karnavati University.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0d14",
+  "theme_color": "#0b0d14",
+  "categories": ["events", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Gate scanner",
+      "short_name": "Scanner",
+      "url": "/scanner"
+    }
+  ]
+}

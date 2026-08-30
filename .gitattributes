@@ -1,0 +1,17 @@
+# Normalise line endings.
+#
+# Windows checks out CRLF, but everything in the repo is stored as LF — which is
+# what Vercel's Linux builders and the Firebase CLI expect. Without this, the
+# first commit from Windows records CRLF and every later diff is noise.
+* text=auto eol=lf
+
+# Binary assets git must not touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.mp3 binary

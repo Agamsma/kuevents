@@ -1,0 +1,44 @@
+rules_version = '2';
+
+/*
+ * Event cover images.
+ *
+ * The size and content-type limits here are the ones that actually hold — the
+ * checks in `lib/storage.ts` exist to give a fast, specific error message, not
+ * to enforce anything. Anything validated only in the browser is not validated.
+ */
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isUniversity() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.matches('^[^@]+@karnavatiuniversity[.]edu[.]in$');
+    }
+
+    match /event-covers/{uid}/{fileName} {
+      // Covers appear on the public directory, so any signed-in member of the
+      // university can read them.
+      allow read: if isUniversity();
+
+      // You may only write into your own folder, which is what stops one
+      // student overwriting another's proposal artwork.
+      allow create: if isUniversity()
+        && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+
+      // Covers are immutable: each upload gets a fresh UUID, so an update is
+      // always either a mistake or an attempt to swap an approved event's
+      // artwork after the fact.
+      allow update: if false;
+
+      allow delete: if isUniversity() && request.auth.uid == uid;
+    }
+
+    // Nothing else in the bucket is reachable from a client.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

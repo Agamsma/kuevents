@@ -1,0 +1,16 @@
+{
+  "//": [
+    "No composite indexes are required.",
+    "",
+    "Every query in this app is deliberately shaped to run on the single-field",
+    "indexes Firestore creates automatically — see lib/firestore-queries.ts.",
+    "Sorting and secondary filtering happen in memory, which costs nothing at",
+    "this scale and means the app never fails at runtime waiting for someone to",
+    "run `firebase deploy --only firestore:indexes`.",
+    "",
+    "If events grow past a few thousand, add the composite indexes here and",
+    "move the sorting back into the queries."
+  ],
+  "indexes": [],
+  "fieldOverrides": []
+}

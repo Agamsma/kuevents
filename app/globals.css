@@ -1,0 +1,424 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * KU Events — obsidian, crimson, gold
+ * ---------------------------------------------------------------------------
+ * The ground is a near-black with a warm red undertone rather than a neutral
+ * charcoal, so the crimson accents read as part of the same material instead of
+ * sitting on top of a grey field. Everything lifts in warm steps: obsidian →
+ * ember → ash.
+ *
+ * Crimson is the university's colour and carries brand and action. Gold is the
+ * scarce one: it marks the single most important thing on a screen and nothing
+ * else, which is why it stays legible as "this matters".
+ *
+ * One important tension, deliberately managed: crimson is the brand AND red is
+ * the gate's refusal signal. They are kept far apart in value — brand crimson
+ * is deep and desaturated, the refusal is a bright alarm red that floods the
+ * entire viewport. At a gate you are never reading a small red chip; the whole
+ * screen is the signal.
+ *
+ * Text is bone, never pure white. Pure white on near-black is the harsh,
+ * fatiguing combination this interface is specifically trying not to be.
+ */
+
+:root {
+  --radius: 1rem;
+
+  /* Ground and surfaces — warm, not neutral */
+  --obsidian: #0a0708;
+  --ember: #14100f;
+  --ash: #1e1917;
+  --ash-2: #2a2320;
+
+  /* Type */
+  --bone: #f4efe9;
+  --bone-dim: #a89d97;
+  --bone-faint: #6d635f;
+
+  /* Accents */
+  --crimson: #e0475c;
+  --crimson-deep: #9b1b32;
+  --maroon: #5c1020;
+  --gold: #e8b558;
+
+  /* Gate verdicts — reserved */
+  --admit: #4ad48e;
+  --refuse: #ff3b4e;
+
+  --line: #ffffff14;
+  --line-strong: #ffffff26;
+
+  /* Frosted glass */
+  --glass: #ffffff0a;
+  --glass-strong: #ffffff12;
+
+  /* The colour a punched notch reveals. */
+  --notch: var(--obsidian);
+
+  /* shadcn-compatible aliases so the ui/ primitives keep working */
+  --background: var(--obsidian);
+  --foreground: var(--bone);
+  --card: var(--ember);
+  --card-foreground: var(--bone);
+  --popover: var(--ash);
+  --popover-foreground: var(--bone);
+  --primary: var(--crimson);
+  --primary-foreground: #1a0207;
+  --secondary: var(--ash);
+  --secondary-foreground: var(--bone);
+  --muted: var(--ash);
+  --muted-foreground: var(--bone-dim);
+  --accent: var(--ash-2);
+  --accent-foreground: var(--bone);
+  --destructive: var(--refuse);
+  --destructive-foreground: #2a0508;
+  --success: var(--admit);
+  --success-foreground: #04140c;
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--crimson);
+}
+
+@theme inline {
+  --color-obsidian: var(--obsidian);
+  --color-ember: var(--ember);
+  --color-ash: var(--ash);
+  --color-ash-2: var(--ash-2);
+  --color-bone: var(--bone);
+  --color-bone-dim: var(--bone-dim);
+  --color-bone-faint: var(--bone-faint);
+  --color-crimson: var(--crimson);
+  --color-crimson-deep: var(--crimson-deep);
+  --color-maroon: var(--maroon);
+  --color-gold: var(--gold);
+  --color-admit: var(--admit);
+  --color-refuse: var(--refuse);
+  --color-line: var(--line);
+  --color-glass: var(--glass);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-sm: calc(var(--radius) - 8px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 8px);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--obsidian);
+    color: var(--bone);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* One focus treatment everywhere, and it is always visible. */
+  :focus-visible {
+    outline: 2px solid var(--crimson);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--crimson);
+    color: #1a0207;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--ash-2);
+    border-radius: 9999px;
+    border: 3px solid var(--obsidian);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--bone-faint);
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Type roles
+   Fraunces carries the brand voice: a soft, high-contrast serif with optical
+   sizing, set large and tight. Instrument Sans reads underneath it. JetBrains
+   Mono is the ticket vernacular — every code, count and timestamp.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variation-settings: "SOFT" 40, "WONK" 1, "opsz" 40;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+/* Printed ticket field label: MONO, tiny, letterspaced, dim. */
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--bone-faint);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Frosted glass
+   Used for anything that floats above content: the header, the hero cards,
+   modals. Backdrop-blur plus a hairline top highlight, which is what sells the
+   illusion of a physical pane catching light.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
+  box-shadow:
+    inset 0 1px 0 0 #ffffff14,
+    0 20px 50px -24px #000000cc;
+}
+
+.glass-strong {
+  background: var(--glass-strong);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid var(--line-strong);
+  box-shadow:
+    inset 0 1px 0 0 #ffffff1f,
+    0 24px 60px -28px #000000e6;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   The stub: every ticket-shaped surface
+   ─────────────────────────────────────────────────────────────────────────── */
+
+.stub {
+  position: relative;
+  background: var(--ember);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.stub-notched::before,
+.stub-notched::after {
+  content: "";
+  position: absolute;
+  top: var(--at, 50%);
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: var(--notch);
+  pointer-events: none;
+}
+
+.stub-notched::before {
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.stub-notched::after {
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+.tear {
+  position: relative;
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    var(--line-strong) 0 8px,
+    transparent 8px 16px
+  );
+  background-size: 16px 1px;
+  background-repeat: repeat-x;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Ambient motion
+   The hero's background is three slow blurred orbs on long, offset cycles.
+   Long durations and low opacity are what keep it "expensive" rather than
+   "screensaver" — nothing should be fast enough to catch the eye deliberately.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, -8%, 0) scale(1.12);
+  }
+}
+
+@keyframes drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.08);
+  }
+  50% {
+    transform: translate3d(-7%, 6%, 0) scale(0.95);
+  }
+}
+
+@keyframes drift-c {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(0.95);
+  }
+  50% {
+    transform: translate3d(4%, 9%, 0) scale(1.15);
+  }
+}
+
+.animate-drift-a {
+  animation: drift-a 26s ease-in-out infinite;
+}
+.animate-drift-b {
+  animation: drift-b 32s ease-in-out infinite;
+}
+.animate-drift-c {
+  animation: drift-c 38s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+}
+
+.animate-live-pulse {
+  animation: live-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateY(0%);
+    opacity: 0;
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(var(--sweep-distance, 240px));
+    opacity: 0;
+  }
+}
+
+.animate-scan-sweep {
+  animation: scan-sweep 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+@keyframes stub-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-stub-in {
+  animation: stub-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* A slow gold sheen across the primary CTA. Runs once on load, then on hover. */
+@keyframes sheen {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(320%) skewX(-18deg);
+  }
+}
+
+.animate-sheen {
+  animation: sheen 1.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   html5-qrcode strips its own chrome; the viewport is ours.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+#ku-qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+#ku-qr-reader img[alt="Info icon"],
+#ku-qr-reader__dashboard_section_csr span,
+#ku-qr-reader__header_message {
+  display: none !important;
+}
+
+/* The scanner is a kiosk surface — a stray drag must not select text. */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
