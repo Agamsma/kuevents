@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { SIGNED_IN_HINT_COOKIE } from "@/lib/constants";
+
 /**
  * Edge-side routing guard. (Next 16 renamed this convention from `middleware`
  * to `proxy`; the behaviour is unchanged.)
@@ -39,8 +41,6 @@ const PROTECTED_PREFIXES = [
   "/events/request",
 ];
 
-const SIGNED_IN_HINT = "ku_signed_in";
-
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -48,7 +48,7 @@ export default function proxy(request: NextRequest) {
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
 
-  if (isProtected && !request.cookies.has(SIGNED_IN_HINT)) {
+  if (isProtected && !request.cookies.has(SIGNED_IN_HINT_COOKIE)) {
     const login = new URL("/login", request.url);
     login.searchParams.set("next", pathname);
     return NextResponse.redirect(login);

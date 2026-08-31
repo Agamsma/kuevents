@@ -18,6 +18,7 @@ import {
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
 import { auth, db, googleProvider } from "@/lib/firebase";
+import { SIGNED_IN_HINT_COOKIE } from "@/lib/constants";
 import {
   DOMAIN_REJECTION_MESSAGE,
   isUniversityEmail,
@@ -45,8 +46,8 @@ const AuthContext = createContext<AuthState | null>(null);
 function setSignedInHint(signedIn: boolean) {
   const secure = window.location.protocol === "https:" ? "; Secure" : "";
   document.cookie = signedIn
-    ? `ku_signed_in=1; Path=/; Max-Age=${60 * 60 * 24 * 14}; SameSite=Lax${secure}`
-    : `ku_signed_in=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+    ? `${SIGNED_IN_HINT_COOKIE}=1; Path=/; Max-Age=${60 * 60 * 24 * 14}; SameSite=Lax${secure}`
+    : `${SIGNED_IN_HINT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
 }
 
 /**

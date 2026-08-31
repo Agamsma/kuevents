@@ -11,6 +11,7 @@ import { fetchMyTickets, fetchPublishedEvents } from "@/lib/firestore-queries";
 import { formatDayNum, formatMonthAbbr, formatTime } from "@/lib/format";
 import { TRACK_LABELS, type EventDoc, type EventTrack, type TicketDoc } from "@/lib/types";
 import { Reveal } from "@/components/motion/reveal";
+import { NextPass } from "@/components/landing/next-pass";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
 import { Tabs, TabsContent, TabsList, TabsPill, TabsTrigger } from "@/components/ui/tabs";
@@ -34,13 +35,27 @@ export function EventDirectory() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabValue>("ALL");
 
+  /**
+   * The calendar loads for everyone, signed in or not.
+   *
+   * Signed-out visitors get it from `/api/events/public`, which projects each
+   * event down to display fields only — so the front page works as a shareable
+   * campus calendar without a login wall, and without exposing organizer UIDs
+   * or review notes to the internet.
+   *
+   * Signed-in users read Firestore directly instead, because they also need
+   * their own tickets, and a booking they just made must appear immediately
+   * rather than waiting out the public route's cache.
+   */
   const load = useCallback(async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
     try {
+      if (!user) {
+        const response = await fetch("/api/events/public");
+        const body = await response.json();
+        setEvents((body.events ?? []) as EventDoc[]);
+        return;
+      }
+
       const [published, tickets] = await Promise.all([
         fetchPublishedEvents(),
         fetchMyTickets(user.uid),
@@ -104,14 +119,15 @@ export function EventDirectory() {
           </div>
         </Reveal>
 
-        {!user ? (
-          <SignedOutPrompt />
-        ) : (
-          <Tabs
-            value={tab}
-            onValueChange={(value) => setTab(value as TabValue)}
-            className="mt-8"
-          >
+        {/* Pinned above the calendar for anyone holding a pass for something
+            imminent. Renders nothing otherwise. */}
+        <NextPass />
+
+        <Tabs
+          value={tab}
+          onValueChange={(value) => setTab(value as TabValue)}
+          className="mt-8"
+        >
             <Reveal>
               <TabsList className="mb-9 flex-wrap">
                 {TABS.map((entry) => (
@@ -153,8 +169,28 @@ export function EventDirectory() {
                 )}
               </TabsContent>
             ))}
-          </Tabs>
-        )}
+        </Tabs>
+
+        {/* Signed-out visitors can browse everything; the ask comes only when
+            they want a seat, which is the point at which an account is
+            actually needed. */}
+        {!user && !loading && events.length > 0 ? (
+          <Reveal>
+            <div className="glass mt-10 flex flex-col items-center gap-4 rounded-2xl px-6 py-7 text-center sm:flex-row sm:justify-between sm:text-left">
+              <div>
+                <div className="display text-[1.25rem] text-bone">
+                  Want a seat at one of these?
+                </div>
+                <p className="mt-1.5 text-sm leading-relaxed text-bone-dim">
+                  Sign in with your KU account to reserve a pass.
+                </p>
+              </div>
+              <Button size="lg" className="shrink-0" asChild>
+                <Link href="/login">Sign in</Link>
+              </Button>
+            </div>
+          </Reveal>
+        ) : null}
       </div>
     </section>
   );
@@ -318,24 +354,3 @@ function EmptyTrack({ track }: { track: TabValue }) {
   );
 }
 
-/** Signed-out visitors get the hero, but the directory needs an account. */
-function SignedOutPrompt() {
-  return (
-    <Reveal>
-      <Stub notched className="mt-8 px-6 py-16 text-center">
-        <div className="mx-auto max-w-sm">
-          <div className="display text-[1.6rem] text-bone">
-            Sign in to see what&rsquo;s on
-          </div>
-          <p className="mt-2.5 text-sm leading-relaxed text-bone-dim">
-            The event calendar is for Karnavati students and staff, so it sits
-            behind your university account.
-          </p>
-          <Button className="mt-7" size="lg" asChild>
-            <Link href="/login">Continue with your KU account</Link>
-          </Button>
-        </div>
-      </Stub>
-    </Reveal>
-  );
-}

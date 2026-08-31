@@ -9,20 +9,29 @@
  * a marshal can work by ear without looking at the screen.
  */
 
+/**
+ * One context for the life of the page, deliberately never torn down.
+ *
+ * Browsers cap a document at a handful of AudioContexts (~6 in Chrome) and
+ * closing one is asynchronous, so creating a fresh context per scanner mount
+ * would eventually throw and leave a gate silent mid-queue. A single suspended
+ * context costs nothing; the `closed` guard below recreates it only if the
+ * browser tears it down on our behalf.
+ */
 let ctx: AudioContext | null = null;
 
 function audioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
 
-  if (!ctx) {
-    const Ctor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-    if (!Ctor) return null;
-    ctx = new Ctor();
-  }
+  if (ctx && ctx.state !== "closed") return ctx;
 
+  const Ctor =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext;
+  if (!Ctor) return null;
+
+  ctx = new Ctor();
   return ctx;
 }
 

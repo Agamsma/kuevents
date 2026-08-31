@@ -2,6 +2,10 @@
 
 import Dexie, { type EntityTable } from "dexie";
 
+// Relative, with the extension: this module is also loaded directly by
+// `node --test`, which resolves neither the `@/` alias nor a bare specifier.
+import { DEVICE_ID_KEY } from "../constants.ts";
+
 /**
  * Local roster + outbox for the gate scanner.
  *
@@ -88,12 +92,11 @@ export const gateDb = new KuEventsDexie();
  * admitted a holder. Survives reloads; resets if the user clears site data.
  */
 export function getDeviceId(): string {
-  const KEY = "ku_events_device_id";
-  const existing = localStorage.getItem(KEY);
+  const existing = localStorage.getItem(DEVICE_ID_KEY);
   if (existing) return existing;
 
   const id = `gate_${crypto.randomUUID()}`;
-  localStorage.setItem(KEY, id);
+  localStorage.setItem(DEVICE_ID_KEY, id);
   return id;
 }
 

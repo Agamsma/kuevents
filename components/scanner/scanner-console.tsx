@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
+import { ACTIVE_EVENT_KEY } from "@/lib/constants";
 import { fetchEventTickets, fetchOpenEvents } from "@/lib/firestore-queries";
 import { parseQrPayload } from "@/lib/qr";
 import { playError, playNeutral, playSuccess, primeAudio } from "@/lib/sound";
@@ -47,8 +48,6 @@ import { toast } from "@/components/ui/toast";
 import { QrViewport } from "@/components/scanner/qr-viewport";
 import { ScanOverlay } from "@/components/scanner/scan-overlay";
 import { ManualAdmit } from "@/components/scanner/manual-admit";
-
-const ACTIVE_EVENT_KEY = "ku_events_active_event";
 
 interface ScanLogEntry {
   id: string;
@@ -585,6 +584,34 @@ export function ScannerConsole() {
       <p className="mt-auto pt-5 text-center font-mono text-[10px] text-bone-faint">
         {profile?.full_name ?? user?.email} · Device {deviceId.slice(-6)}
       </p>
+
+      {/* No roster yet: say what to do, not just that nothing is here. This is
+          the first screen a marshal sees on a fresh device, usually minutes
+          before doors, and a dead end here is a dead gate. */}
+      {!meta ? (
+        <Stub notched className="px-6 py-12 text-center">
+          <div className="mx-auto max-w-[17rem]">
+            <Download className="mx-auto size-7 text-bone-faint" />
+            <div className="display mt-4 text-[1.35rem] text-bone">
+              Pick an event first
+            </div>
+            <p className="mt-2 text-[13px] leading-relaxed text-bone-dim">
+              Download its roster while you still have signal. After that this
+              gate scans with no connection at all.
+            </p>
+            <Button
+              className="mt-6"
+              onClick={() => {
+                setPickerOpen(true);
+                void loadEvents();
+              }}
+            >
+              <Download className="size-4" />
+              Choose an event
+            </Button>
+          </div>
+        </Stub>
+      ) : null}
 
       {meta ? (
         <ManualAdmit
