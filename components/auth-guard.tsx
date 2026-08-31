@@ -6,7 +6,8 @@ import { Loader2, ShieldAlert } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import type { UserRole } from "@/lib/types";
+import { FieldLabel } from "@/components/ui/stub";
+import { ROLE_LABELS, type UserRole } from "@/lib/types";
 
 /**
  * Client-side gate for authenticated pages.
@@ -42,18 +43,51 @@ export function AuthGuard({
   }
 
   if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+    const needsSuperAdmin = allowedRoles.includes("superadmin") && allowedRoles.length === 1;
+
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
         <ShieldAlert className="size-9 text-refuse" />
+
         <div>
-          <h1 className="display text-[1.75rem] text-bone">Not your gate</h1>
-          <p className="mx-auto mt-2 max-w-[19rem] text-sm leading-relaxed text-bone-dim">
-            This area is for {allowedRoles.join(" and ")} accounts. You are
-            signed in as a{" "}
-            <span className="font-medium text-bone">{profile.role}</span>. Ask an
-            organizer if you need access.
+          <h1 className="display text-[1.75rem] text-bone">
+            {needsSuperAdmin ? "Super admin only" : "Not your gate"}
+          </h1>
+          <p className="mx-auto mt-2.5 max-w-[22rem] text-sm leading-relaxed text-bone-dim">
+            This area needs{" "}
+            {allowedRoles.map((r) => ROLE_LABELS[r].toLowerCase()).join(" or ")}
+            {" "}access.
           </p>
         </div>
+
+        {/*
+         * Show the account and the role it actually resolved to.
+         *
+         * "You do not have access" without saying what you *do* have is the
+         * least useful error an app can give — it leaves you unable to tell a
+         * wrong account from a role that was never assigned. This turns a
+         * support conversation into a glance.
+         */}
+        <div className="stub w-full max-w-[22rem] px-5 py-4 text-left">
+          <FieldLabel>Signed in as</FieldLabel>
+          <div className="mt-1.5 truncate font-mono text-[12px] text-bone">
+            {profile.email}
+          </div>
+
+          <div className="mt-3.5">
+            <FieldLabel>Your role</FieldLabel>
+            <div className="mt-1.5 font-mono text-[13px] text-gold">
+              {profile.role}
+            </div>
+          </div>
+        </div>
+
+        <p className="mx-auto max-w-[22rem] text-xs leading-relaxed text-bone-faint">
+          {needsSuperAdmin
+            ? "Super admin is never granted from inside the app. Set role to “superadmin” on your own document in Firestore › users, then reload."
+            : "Ask a super admin to change your role from the admin panel."}
+        </p>
+
         <Button variant="outline" onClick={() => router.push("/")}>
           Back to events
         </Button>

@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Loader2, Search, ShieldCheck, Users2 } from "lucide-react";
+import { AlertTriangle, Loader2, Search, ShieldCheck, Users2 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth-domain";
 import { ROLE_LABELS, type UserRole } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import { FieldLabel, Stub } from "@/components/ui/stub";
 import {
   Table,
@@ -55,6 +56,10 @@ export function PeoplePanel({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [savingUid, setSavingUid] = useState<string | null>(null);
+  /** Set when the panel cannot load at all — rendered inline, not as a toast. */
+  const [fatal, setFatal] = useState<{ message: string; config: boolean } | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     try {
@@ -66,14 +71,29 @@ export function PeoplePanel({
       });
 
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Could not load users.");
 
+      if (!response.ok) {
+        /*
+         * A 503 here means the Admin SDK could not start — almost always a
+         * missing FIREBASE_SERVICE_ACCOUNT_KEY. That is an operator problem,
+         * not a transient one, so it gets a permanent panel rather than a toast
+         * that vanishes before you have finished reading it.
+         */
+        setFatal({
+          message: body.error ?? "Could not load users.",
+          config: response.status === 503,
+        });
+        return;
+      }
+
+      setFatal(null);
       setUsers(body.users as AdminUser[]);
     } catch (error) {
       console.error("[admin] load failed", error);
-      toast.error("Could not load users", {
-        id: "admin-load",
-        description: error instanceof Error ? error.message : "Try again.",
+      setFatal({
+        message:
+          error instanceof Error ? error.message : "Could not reach the server.",
+        config: false,
       });
     } finally {
       setLoading(false);
@@ -169,6 +189,62 @@ export function PeoplePanel({
         Promote a student to organizer and they can review proposals, publish
         events and run the gate. Demote them and it stops on their next request.
       </p>
+
+      {fatal ? (
+        <Stub className="mb-7 border-refuse/30 px-5 py-5">
+          <div className="flex items-start gap-3.5">
+            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-refuse" />
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-medium text-bone">
+                {fatal.config
+                  ? "The server cannot reach Firebase"
+                  : "Could not load people"}
+              </h2>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-bone-dim">
+                {fatal.message}
+              </p>
+
+              {fatal.config ? (
+                <div className="mt-4 rounded-lg border border-line bg-white/[0.02] p-3.5">
+                  <FieldLabel>How to fix it</FieldLabel>
+                  <ol className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-bone-dim">
+                    <li>
+                      1. Firebase console › Project settings › Service accounts ›
+                      Generate new private key
+                    </li>
+                    <li>
+                      2. Put the JSON on one line as{" "}
+                      <span className="font-mono text-[11px] text-bone">
+                        FIREBASE_SERVICE_ACCOUNT_KEY
+                      </span>
+                    </li>
+                    <li>
+                      3. Locally that means{" "}
+                      <span className="font-mono text-[11px] text-bone">
+                        .env.local
+                      </span>
+                      ; on Vercel, Project Settings › Environment Variables, then
+                      redeploy
+                    </li>
+                  </ol>
+                </div>
+              ) : null}
+
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-4"
+                onClick={() => {
+                  setLoading(true);
+                  void load();
+                }}
+              >
+                Try again
+              </Button>
+            </div>
+          </div>
+        </Stub>
+      ) : null}
 
       {/* Role census. Four numbers that answer "who can do what" at a glance. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
