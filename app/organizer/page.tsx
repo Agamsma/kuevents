@@ -1,17 +1,11 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AuthGuard } from "@/components/auth-guard";
-import { OrganizerDashboard } from "@/components/organizer-dashboard";
-
-export const metadata: Metadata = {
-  title: "Organize",
-  robots: { index: false, follow: false },
-};
-
-export default function OrganizerPage() {
-  return (
-    <AuthGuard allowedRoles={["organizer", "superadmin"]}>
-      <OrganizerDashboard />
-    </AuthGuard>
-  );
+/**
+ * Event management moved into the tabbed dashboard at /dashboard.
+ *
+ * Kept as a redirect rather than deleted: this path is in the wild — bookmarks,
+ * and any link sent to an organizer before the move.
+ */
+export default function OrganizerRedirect() {
+  redirect("/dashboard?tab=events");
 }

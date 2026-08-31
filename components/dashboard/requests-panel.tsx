@@ -29,13 +29,28 @@ type Decision =
   | { kind: "reject"; event: EventDoc }
   | null;
 
-export function ApprovalBoard() {
+/**
+ * The proposal review queue, as a panel inside a dashboard.
+ *
+ * Any organizer may review any pending proposal — a proposal has no owner
+ * until somebody approves it and takes responsibility for the venue and gate.
+ */
+export function RequestsPanel({
+  onCountChange,
+}: {
+  /** Lets the dashboard badge the tab without subscribing a second time. */
+  onCountChange?: (count: number) => void;
+}) {
   const { getIdToken } = useAuth();
 
   const [pending, setPending] = useState<EventDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [decision, setDecision] = useState<Decision>(null);
   const [working, setWorking] = useState(false);
+
+  useEffect(() => {
+    onCountChange?.(pending.length);
+  }, [pending.length, onCountChange]);
 
   /*
    * Live, not a snapshot.
@@ -118,28 +133,13 @@ export function ApprovalBoard() {
   );
 
   return (
-    <main
-      id="main"
-      tabIndex={-1}
-      className="mx-auto w-full max-w-4xl px-5 pb-24 pt-28 outline-none sm:px-6"
-    >
-      <FieldLabel>Review queue</FieldLabel>
-      <div className="mt-3 flex items-end justify-between gap-4">
-        <h1 className="display text-[clamp(2rem,6vw,2.75rem)] text-bone">
-          Event proposals
-        </h1>
-        {!loading && pending.length > 0 ? (
-          <span className="shrink-0 rounded-full border border-gold/30 bg-gold/[0.08] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold tabular">
-            {pending.length} waiting
-          </span>
-        ) : null}
-      </div>
-      <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-bone-dim">
+    <>
+      <p className="mb-7 max-w-lg text-[14px] leading-relaxed text-bone-dim">
         Approving publishes the event to the campus directory and makes you its
         organizer — the roster and the gate become yours.
       </p>
 
-      <div className="mt-10">
+      <div>
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2">
             {[0, 1].map((i) => (
@@ -176,7 +176,7 @@ export function ApprovalBoard() {
           setDecision((d) => (d ? { kind, event: d.event } : null))
         }
       />
-    </main>
+    </>
   );
 }
 

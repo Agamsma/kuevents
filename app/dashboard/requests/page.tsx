@@ -1,19 +1,10 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AuthGuard } from "@/components/auth-guard";
-import { SiteHeader } from "@/components/site-header";
-import { ApprovalBoard } from "@/components/dashboard/approval-board";
-
-export const metadata: Metadata = {
-  title: "Event requests",
-  robots: { index: false, follow: false },
-};
-
-export default function RequestsPage() {
-  return (
-    <AuthGuard allowedRoles={["organizer", "superadmin"]}>
-      <SiteHeader />
-      <ApprovalBoard />
-    </AuthGuard>
-  );
+/**
+ * The review queue is now a tab on the dashboard rather than its own page —
+ * an organizer should not have to remember a second URL exists. Kept as a
+ * redirect because this path was live.
+ */
+export default function RequestsRedirect() {
+  redirect("/dashboard?tab=requests");
 }

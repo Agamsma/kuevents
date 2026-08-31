@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 
 import { AuthGuard } from "@/components/auth-guard";
-import { SiteHeader } from "@/components/site-header";
-import { UserManagement } from "@/components/admin/user-management";
+import { AdminHome } from "@/components/admin/admin-home";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -18,8 +17,7 @@ export const metadata: Metadata = {
 export default function AdminPage() {
   return (
     <AuthGuard allowedRoles={["superadmin"]}>
-      <SiteHeader />
-      <UserManagement />
+      <AdminHome />
     </AuthGuard>
   );
 }

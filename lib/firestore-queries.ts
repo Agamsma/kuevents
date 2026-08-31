@@ -88,6 +88,24 @@ export async function fetchPendingEvents(): Promise<EventDoc[]> {
     .sort((a, b) => a.created_at - b.created_at);
 }
 
+/**
+ * The events one organizer is accountable for.
+ *
+ * An organizer's dashboard shows their own events, not the whole institution's
+ * — they can only change the status of events they own, so listing everyone
+ * else's would be a wall of things they cannot act on. Super admins get
+ * `fetchAllEvents` instead.
+ */
+export async function fetchEventsByOrganizer(uid: string): Promise<EventDoc[]> {
+  const snap = await getDocs(
+    query(collection(db, "events"), where("organizer_uid", "==", uid)),
+  );
+
+  return snap.docs
+    .map((d) => normaliseEvent(d.id, d.data()))
+    .sort((a, b) => b.starts_at - a.starts_at);
+}
+
 /** Everything one student has proposed, so they can track their own requests. */
 export async function fetchMyProposals(uid: string): Promise<EventDoc[]> {
   const snap = await getDocs(

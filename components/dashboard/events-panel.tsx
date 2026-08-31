@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Loader2, Plus, Users } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
-import { fetchAllEvents } from "@/lib/firestore-queries";
+import { fetchAllEvents, fetchEventsByOrganizer } from "@/lib/firestore-queries";
 import { formatDate, formatTime } from "@/lib/format";
 import {
   EVENT_CATEGORIES,
@@ -15,7 +15,6 @@ import {
   type EventStatus,
   type EventTrack,
 } from "@/lib/types";
-import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/ui/field";
 import {
@@ -40,8 +39,26 @@ const STATUS_STYLE: Record<EventStatus, { label: string; className: string }> = 
   cancelled: { label: "Cancelled", className: "text-refuse border-refuse/30 bg-refuse/[0.08]" },
 };
 
-export function OrganizerDashboard() {
-  const { getIdToken } = useAuth();
+/**
+ * Event management, as a panel inside a dashboard.
+ *
+ * `scope` decides whose events are listed. An organizer sees only their own —
+ * they can only change the status of events they own, so a list of everyone
+ * else's would be a wall of things they cannot act on. A super admin sees all,
+ * because oversight is the entire point of their view.
+ */
+export function EventsPanel({
+  scope,
+  onCountsChange,
+  onUpcomingChange,
+}: {
+  scope: "mine" | "all";
+  /** Lets a parent dashboard show totals without loading events twice. */
+  onCountsChange?: (counts: { events: number; issued: number; capacity: number }) => void;
+  /** The soonest event still ahead, for the overview's "next up" card. */
+  onUpcomingChange?: (event: EventDoc | null) => void;
+}) {
+  const { user, getIdToken } = useAuth();
 
   const [events, setEvents] = useState<EventDoc[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,8 +66,14 @@ export function OrganizerDashboard() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (scope === "mine" && !user) return;
+
     try {
-      setEvents(await fetchAllEvents());
+      setEvents(
+        scope === "all"
+          ? await fetchAllEvents()
+          : await fetchEventsByOrganizer(user!.uid),
+      );
     } catch (error) {
       console.error("[organizer] load failed", error);
       toast.error("Could not load events", {
@@ -60,7 +83,7 @@ export function OrganizerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [scope, user]);
 
   useEffect(() => {
     // Async loader: every setState sits behind an await. See events-home.
@@ -107,48 +130,61 @@ export function OrganizerDashboard() {
     [getIdToken],
   );
 
-  const totals = events.reduce(
-    (acc, e) => {
-      acc.issued += e.tickets_issued ?? 0;
-      acc.capacity += e.capacity ?? 0;
-      return acc;
-    },
-    { issued: 0, capacity: 0 },
+  const totals = useMemo(
+    () =>
+      events.reduce(
+        (acc, e) => {
+          acc.issued += e.tickets_issued ?? 0;
+          acc.capacity += e.capacity ?? 0;
+          return acc;
+        },
+        { issued: 0, capacity: 0 },
+      ),
+    [events],
   );
 
-  return (
-    <AppShell>
-      <div className="mb-8 flex items-end justify-between gap-4">
-        <div>
-          <FieldLabel>Organizer</FieldLabel>
-          <h1 className="display mt-2.5 text-[2.5rem] text-bone sm:text-[3.25rem]">
-            Your events
-          </h1>
-        </div>
+  // Hand totals and the next event up so the overview tab does not have to load
+  // the same events a second time just to count them.
+  useEffect(() => {
+    onCountsChange?.({ events: events.length, ...totals });
+  }, [events.length, totals, onCountsChange]);
 
-        <Button onClick={() => setComposerOpen(true)}>
+  /**
+   * The soonest event still ahead that is actually running.
+   *
+   * Drafts and rejected proposals are excluded — "next up" should mean
+   * something the organizer has to show up for, not something in a folder.
+   *
+   * Derived here rather than in a `useMemo` because it reads the clock, and
+   * `Date.now()` during render is impure: two renders a second apart could
+   * disagree about which event is next.
+   */
+  useEffect(() => {
+    const now = Date.now();
+
+    const next =
+      events
+        .filter(
+          (e) =>
+            (e.status === "published" || e.status === "live") && e.ends_at >= now,
+        )
+        .sort((a, b) => a.starts_at - b.starts_at)[0] ?? null;
+
+    onUpcomingChange?.(next);
+  }, [events, onUpcomingChange]);
+
+  return (
+    <>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <FieldLabel>
+          {scope === "all" ? "Every event on the platform" : "Events you run"}
+        </FieldLabel>
+
+        <Button size="sm" onClick={() => setComposerOpen(true)}>
           <Plus className="size-4" />
           New event
         </Button>
       </div>
-
-      {/* Two numbers that answer "how is it going" without a chart. */}
-      {events.length > 0 ? (
-        <Stub className="mb-6 flex items-center divide-x divide-[color:var(--line)] px-0 py-4">
-          <div className="flex-1 px-5">
-            <FieldLabel>Passes issued</FieldLabel>
-            <div className="display mt-1 text-[2rem] leading-none text-bone tabular">
-              {totals.issued}
-            </div>
-          </div>
-          <div className="flex-1 px-5">
-            <FieldLabel>Total capacity</FieldLabel>
-            <div className="display mt-1 text-[2rem] leading-none text-bone-dim tabular">
-              {totals.capacity || "—"}
-            </div>
-          </div>
-        </Stub>
-      ) : null}
 
       {loading ? (
         <div className="space-y-3.5">
@@ -189,7 +225,7 @@ export function OrganizerDashboard() {
         onOpenChange={setComposerOpen}
         onCreated={(event) => setEvents((current) => [event, ...current])}
       />
-    </AppShell>
+    </>
   );
 }
 

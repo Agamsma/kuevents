@@ -36,7 +36,19 @@ const ROLE_STYLE: Record<UserRole, string> = {
   superadmin: "border-gold/35 bg-gold/[0.1] text-gold",
 };
 
-export function UserManagement() {
+/**
+ * Role assignment, as a panel inside the admin dashboard.
+ *
+ * The list is loaded through `/api/admin/users` rather than read directly from
+ * Firestore: the rules let you read your own profile and nobody else's, so a
+ * client-side query over the whole `users` collection would fail. The API is
+ * the deliberate exception, gated on `superadmin`.
+ */
+export function PeoplePanel({
+  onCountChange,
+}: {
+  onCountChange?: (counts: Partial<Record<UserRole, number>>) => void;
+}) {
   const { profile, getIdToken } = useAuth();
 
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -98,6 +110,11 @@ export function UserManagement() {
     return map;
   }, [users]);
 
+  // Hand the census up so the overview tab does not fetch the directory twice.
+  useEffect(() => {
+    onCountChange?.(counts);
+  }, [counts, onCountChange]);
+
   const setRole = useCallback(
     async (user: AdminUser, role: UserRole) => {
       if (role === user.role) return;
@@ -147,22 +164,14 @@ export function UserManagement() {
   );
 
   return (
-    <main
-      id="main"
-      tabIndex={-1}
-      className="mx-auto w-full max-w-4xl px-5 pb-24 pt-28 outline-none sm:px-6"
-    >
-      <FieldLabel>Super admin</FieldLabel>
-      <h1 className="display mt-3 text-[clamp(2rem,6vw,2.75rem)] text-bone">
-        People &amp; roles
-      </h1>
-      <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-bone-dim">
+    <>
+      <p className="mb-7 max-w-lg text-[14px] leading-relaxed text-bone-dim">
         Promote a student to organizer and they can review proposals, publish
         events and run the gate. Demote them and it stops on their next request.
       </p>
 
       {/* Role census. Four numbers that answer "who can do what" at a glance. */}
-      <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(["student", "scanner", "organizer", "superadmin"] as UserRole[]).map((role) => (
           <Stub key={role} className="px-4 py-4">
             <FieldLabel>{ROLE_LABELS[role]}</FieldLabel>
@@ -294,6 +303,6 @@ export function UserManagement() {
       <p className="mt-6 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-bone-faint">
         Super admin is granted out of band, never from this panel
       </p>
-    </main>
+    </>
   );
 }
