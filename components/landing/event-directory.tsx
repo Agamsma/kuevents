@@ -9,6 +9,7 @@ import { ArrowUpRight, CalendarDays, MapPin, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { fetchMyTickets, fetchPublishedEvents } from "@/lib/firestore-queries";
 import { formatDayNum, formatMonthAbbr, formatTime } from "@/lib/format";
+import { seatState } from "@/lib/seats";
 import { TRACK_LABELS, type EventDoc, type EventTrack, type TicketDoc } from "@/lib/types";
 import { Reveal } from "@/components/motion/reveal";
 import { NextPass } from "@/components/landing/next-pass";
@@ -211,8 +212,7 @@ function EventCard({
   ticket?: TicketDoc;
   index: number;
 }) {
-  const seatsLeft = event.capacity > 0 ? event.capacity - (event.tickets_issued ?? 0) : null;
-  const full = seatsLeft !== null && seatsLeft <= 0;
+  const { seatsLeft, full, low } = seatState(event);
 
   return (
     <motion.article
@@ -301,8 +301,8 @@ function EventCard({
                 <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-refuse">
                   Full
                 </span>
-              ) : seatsLeft !== null && seatsLeft <= 20 ? (
-                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+              ) : low ? (
+                <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-urgent">
                   <Users className="size-3" />
                   {seatsLeft} left
                 </span>

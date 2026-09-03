@@ -23,6 +23,7 @@ import {
   formatMonthAbbr,
   formatTime,
 } from "@/lib/format";
+import { seatState } from "@/lib/seats";
 import type { EventDoc, TicketDoc } from "@/lib/types";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -129,8 +130,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
   const { event, ticket } = state;
 
   const issued = event.tickets_issued ?? 0;
-  const seatsLeft = event.capacity > 0 ? Math.max(event.capacity - issued, 0) : null;
-  const soldOut = seatsLeft !== null && seatsLeft === 0;
+  const { seatsLeft, full: soldOut, low } = seatState(event);
   const bookingsClosed = event.status !== "published" && event.status !== "live";
   const pct = event.capacity > 0 ? Math.min((issued / event.capacity) * 100, 100) : 0;
 
@@ -209,8 +209,8 @@ export function EventDetail({ eventId }: { eventId: string }) {
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              {seatsLeft !== null && seatsLeft > 0 && seatsLeft <= 20 ? (
-                <p className="mt-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-gold">
+              {low ? (
+                <p className="mt-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-urgent">
                   <Users className="size-3" />
                   Only {seatsLeft} left
                 </p>

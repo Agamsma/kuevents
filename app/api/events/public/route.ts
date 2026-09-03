@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { adminDb } from "@/lib/firebase-admin";
-import type { EventDoc, EventTrack } from "@/lib/types";
+import { fetchPublicEvents, type PublicEvent } from "@/lib/events-server";
 
 export const runtime = "nodejs";
 
@@ -17,28 +16,20 @@ export const runtime = "nodejs";
  * reads. Two reasons that matters:
  *
  *  1. Event documents carry `organizer_uid`, `created_by`, `reviewed_by` and
- *     `review_note`. A public Firestore rule would expose all of them. This
- *     projects to a strict allowlist of display fields.
+ *     `review_note`. A public Firestore rule would expose all of them. The
+ *     projection in `lib/events-server.ts` narrows to display fields only.
  *  2. A rule cannot filter fields, only documents — so there would be no way to
  *     publish the calendar without also publishing its internals.
+ *
+ * The query and that projection live in `lib/events-server.ts` because the
+ * landing page renders featured events during SSR from the same source. One
+ * allowlist, two callers.
  *
  * Booking still requires a session; this is a read-only shop window.
  */
 
-/** Exactly what the directory renders. Nothing else leaves the server. */
-export interface PublicEvent {
-  id: string;
-  title: string;
-  description: string;
-  venue: string;
-  starts_at: number;
-  ends_at: number;
-  track: EventTrack;
-  category: string;
-  cover_image_url: string | null;
-  capacity: number;
-  tickets_issued: number;
-}
+/** Re-exported so existing importers of the response shape keep working. */
+export type { PublicEvent };
 
 /**
  * Cached at the edge for a minute, and served stale for ten while it revalidates.
@@ -52,31 +43,7 @@ const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=600";
 
 export async function GET() {
   try {
-    const snap = await adminDb()
-      .collection("events")
-      .where("status", "==", "published")
-      .limit(200)
-      .get();
-
-    const events: PublicEvent[] = snap.docs
-      .map((doc) => {
-        const data = doc.data() as EventDoc;
-
-        return {
-          id: doc.id,
-          title: data.title ?? "",
-          description: data.description ?? "",
-          venue: data.venue ?? "",
-          starts_at: millis(data.starts_at),
-          ends_at: millis(data.ends_at),
-          track: data.track,
-          category: data.category,
-          cover_image_url: data.cover_image_url ?? null,
-          capacity: data.capacity ?? 0,
-          tickets_issued: data.tickets_issued ?? 0,
-        };
-      })
-      .sort((a, b) => a.starts_at - b.starts_at);
+    const events = await fetchPublicEvents();
 
     return NextResponse.json(
       { ok: true, events },
@@ -93,12 +60,4 @@ export async function GET() {
       { status: 503 },
     );
   }
-}
-
-function millis(value: unknown): number {
-  if (typeof value === "number") return value;
-  if (value && typeof value === "object" && "toMillis" in value) {
-    return (value as { toMillis(): number }).toMillis();
-  }
-  return 0;
 }
