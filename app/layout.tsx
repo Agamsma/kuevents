@@ -114,10 +114,24 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <body
-        className={`${fraunces.variable} ${instrument.variable} ${jetbrains.variable} antialiased`}
-      >
+    /*
+     * The three font variables go on <html>, not <body>.
+     *
+     * Tailwind's `@theme` emits `--font-display: var(--font-fraunces), ...` onto
+     * `:root`, which IS <html>. Custom properties only inherit downward, so with
+     * `--font-fraunces` defined one level lower on <body>, the var() at :root
+     * resolved to nothing — and a var() with no fallback makes the whole
+     * declaration guaranteed-invalid. `--font-display`, `--font-sans` and
+     * `--font-mono` all computed to the empty string, so `.display`,
+     * `.field-label` and every `font-mono` utility silently fell back to the
+     * browser's default sans. None of the three faces rendered anywhere.
+     */
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={`${fraunces.variable} ${instrument.variable} ${jetbrains.variable}`}
+    >
+      <body className="antialiased">
         {/* Visible only once focused. Every page's header carries 5–7 nav links
             before the content starts; without this a keyboard user tabs through
             all of them on every single navigation. */}

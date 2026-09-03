@@ -74,11 +74,21 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
     <section className="relative flex min-h-[92dvh] items-center overflow-hidden px-5 pb-20 pt-24 sm:px-8">
       <AmbientField />
 
-      <div className="relative mx-auto w-full max-w-5xl">
+      {/*
+        With a poster in the row the hero widens to max-w-6xl — which is also
+        the header's width, so the two finally align. Without one it stays at
+        max-w-5xl, exactly as before.
+      */}
+      <div
+        className={cn(
+          "relative mx-auto w-full",
+          hasFeatured ? "max-w-6xl" : "max-w-5xl",
+        )}
+      >
         <div
           className={cn(
             "grid items-center gap-x-14 gap-y-12",
-            hasFeatured && "lg:grid-cols-[minmax(0,1fr)_19rem]",
+            hasFeatured && "lg:grid-cols-[minmax(0,1fr)_17rem]",
           )}
         >
           <div>
@@ -90,17 +100,23 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
             </Reveal>
 
             {/*
-              The headline shrinks a step when a poster shares the row, because
-              at the original clamp "Everything happening" no longer fits the
-              narrowed column and wraps into a third line — which breaks the
-              deliberate two-line composition. Without a poster the clamp is
-              untouched.
+              The headline shrinks a step when a poster shares the row, or the
+              composition breaks: measured in Fraunces at weight 600, the longer
+              line ("on campus, in one place.") renders 10.95x the font size —
+              WordReveal's per-word inline-blocks carry their trailing spaces,
+              so it runs wider than the raw string measures. At the original
+              clamp it overruns the narrowed column and wraps to four lines.
+
+              5.5vw is the coefficient that keeps it on one line at the tightest
+              point — a 1024px viewport, where the column is 632px and the line
+              lands at 617px — and 4.5rem caps it once the container stops
+              growing at 1216px. Without a poster the clamp is untouched.
             */}
             <h1
               className={cn(
                 "display mt-7 max-w-4xl text-bone",
                 hasFeatured
-                  ? "text-[clamp(2.75rem,9vw,5.75rem)] lg:text-[clamp(2.75rem,6.4vw,4.75rem)]"
+                  ? "text-[clamp(2.75rem,9vw,5.75rem)] lg:text-[clamp(2.75rem,5.5vw,4.5rem)]"
                   : "text-[clamp(2.75rem,9vw,5.75rem)]",
               )}
             >
@@ -227,7 +243,7 @@ function FeaturedMarquee({ events }: { events: PublicEvent[] }) {
         onMouseLeave={() => setPaused(false)}
         onFocusCapture={() => setPaused(true)}
         onBlurCapture={() => setPaused(false)}
-        className="mx-auto w-full max-w-[19rem] lg:mx-0"
+        className="mx-auto w-full max-w-[17rem] lg:mx-0"
       >
         <Stub className="relative overflow-hidden">
           {/* .poster carries the 2:3 ratio, so the frame has height before the
@@ -251,7 +267,7 @@ function FeaturedMarquee({ events }: { events: PublicEvent[] }) {
                     src={event.cover_image_url}
                     alt=""
                     fill
-                    sizes="(max-width: 1024px) 80vw, 19rem"
+                    sizes="(max-width: 1024px) 80vw, 17rem"
                     priority={active === 0}
                     className="object-cover"
                   />
