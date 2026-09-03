@@ -91,7 +91,10 @@ export function Hero() {
               className="group relative inline-flex h-13 items-center justify-center gap-2 overflow-hidden rounded-full px-7 py-3.5 text-[15px] font-semibold text-[#1a0207] transition-transform active:scale-[0.98]"
               style={{
                 background:
-                  "linear-gradient(135deg, var(--gold) 0%, #f0c977 45%, var(--gold) 100%)",
+                  // #e1d078 is --gold lifted to L 0.852 at the same KU Yellow
+                  // hue (98.2). The old #f0c977 sat at hue 84.7 — fine against
+                  // the previous amber gold, a visible swerve against this one.
+                  "linear-gradient(135deg, var(--gold) 0%, #e1d078 45%, var(--gold) 100%)",
                 boxShadow:
                   "0 0 0 1px #ffffff30 inset, 0 8px 30px -6px color-mix(in oklch, var(--gold) 55%, transparent)",
               }}

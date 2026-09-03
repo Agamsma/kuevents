@@ -13,11 +13,26 @@
  * scarce one: it marks the single most important thing on a screen and nothing
  * else, which is why it stays legible as "this matters".
  *
- * One important tension, deliberately managed: crimson is the brand AND red is
- * the gate's refusal signal. They are kept far apart in value — brand crimson
- * is deep and desaturated, the refusal is a bright alarm red that floods the
- * entire viewport. At a gate you are never reading a small red chip; the whole
- * screen is the signal.
+ * Both are reconciled to Karnavati University's published brand identity:
+ * KU Red #C02722, KU Yellow #F7D70A, KU Orange #F78543. Every accent below
+ * holds the official OKLCH *hue* exactly and moves only lightness, because on
+ * this ground the two colours fail in opposite directions:
+ *
+ *   KU Red    is too DARK   — #C02722 measures 3.40:1 on --obsidian, which
+ *                             fails AA for text. Lifted L 0.526 → 0.616.
+ *   KU Yellow is too BRIGHT — #F7D70A measures 14.02:1, far too loud for a
+ *                             colour whose whole job is scarcity. Lowered
+ *                             L 0.879 → 0.800.
+ *
+ * That is the entire scale: official hue, lightness tuned to the dark ground.
+ *
+ * One tension worth naming: crimson is the brand AND red is the gate's refusal
+ * signal. They are NOT far apart in colour — brand crimson sits at L 0.616 /
+ * hue 27.9 and --refuse at L 0.658 / hue 21.6, about 0.04 lightness and 6
+ * degrees apart. What separates them is deployment scale, not value: brand
+ * crimson only ever appears as a small chip, a rule or a button, while a
+ * refusal floods the entire viewport. At a gate you are never reading a small
+ * red chip; the whole screen is the signal.
  *
  * Text is bone, never pure white. Pure white on near-black is the harsh,
  * fatiguing combination this interface is specifically trying not to be.
@@ -37,11 +52,26 @@
   --bone-dim: #a89d97;
   --bone-faint: #6d635f;
 
-  /* Accents */
-  --crimson: #e0475c;
-  --crimson-deep: #9b1b32;
-  --maroon: #5c1020;
-  --gold: #e8b558;
+  /*
+   * Accents — hue locked to the official KU brand, lightness tuned to this
+   * ground. The hue figure after each value is its OKLCH hue angle; KU Red is
+   * 28.0 and KU Yellow is 98.2, so every step below is genuinely the same
+   * colour as the university's, only lighter or darker.
+   */
+  --crimson: #da5045; /* h 27.9 · 4.98:1 — brand and action */
+  --crimson-lift: #e97265; /* h 28.0 · 6.74:1 — hover and inline links */
+  --crimson-deep: #971b17; /* h 28.1 · 2.37:1 — ambient orbs, deep fills */
+  --maroon: #4f0b09; /* h 27.7 · 1.32:1 — the darkest ambient orb */
+  --gold: #d6be3d; /* h 98.4 · 10.79:1 — the scarce "this matters" */
+  --gold-deep: #99861b; /* h 98.3 · 5.52:1 — gold borders and rings */
+
+  /*
+   * Urgency — "almost sold out". Deliberately KU Orange's hue (48.3), which
+   * sits between gold (98.4) and the gate's refusal (21.6) in hue AND in
+   * lightness, so scarcity reads as a step along the brand rather than as a
+   * quieter version of the alarm. It is a third official colour, not invented.
+   */
+  --urgent: #fd8b49; /* h 48.5 · 8.56:1 */
 
   /* Gate verdicts — reserved */
   --admit: #4ad48e;
@@ -90,9 +120,12 @@
   --color-bone-dim: var(--bone-dim);
   --color-bone-faint: var(--bone-faint);
   --color-crimson: var(--crimson);
+  --color-crimson-lift: var(--crimson-lift);
   --color-crimson-deep: var(--crimson-deep);
   --color-maroon: var(--maroon);
   --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-urgent: var(--urgent);
   --color-admit: var(--admit);
   --color-refuse: var(--refuse);
   --color-line: var(--line);
@@ -279,6 +312,105 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
+   Layout primitives
+   Shape only — no colour decisions beyond the scrim, and no component styling.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/*
+ * Portrait poster crop, 2:3 — the proportion of a printed event bill.
+ *
+ * Distinct from the landing directory's landscape band, which is a fixed
+ * `h-[10.5rem]` because its height is pinned to the stub's notch position
+ * (`notchAt="10.5rem"`). That one cannot become a ratio without the notches
+ * drifting off the tear line, so it is deliberately left alone.
+ */
+.poster {
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+}
+
+.poster > img,
+.poster > video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/*
+ * Scrim for text sitting over an image.
+ *
+ * The stop at 30% is not a taste decision. The dimmest thing we set over a
+ * cover image is 9px `text-gold` (#d6be3d, relative luminance 0.520). Holding
+ * 4.5:1 requires the composited backdrop to stay at or below 0.077 luminance,
+ * and the worst case is a blown-out white photo — which needs 72% obsidian to
+ * get there. 82% at the 30% mark clears that with margin, so gold captions
+ * remain AA-legible over any image we are handed.
+ *
+ * The element needs `position: relative`, and its content needs to sit above
+ * the scrim (`relative z-10` on the children).
+ *
+ * Written as literal rgba rather than color-mix(… var(--obsidian) …) on
+ * purpose. Lightning CSS compiles a color-mix gradient into an @supports block
+ * whose fallback drops every stop to FULLY OPAQUE obsidian — on a browser
+ * without color-mix the cover image would disappear completely, which is worse
+ * than having no scrim at all. These four stops are --obsidian (#0a0708) at
+ * the alphas above; keep them in step if that token ever moves.
+ */
+.spotlight::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(10, 7, 8, 0.94) 0%,
+    rgba(10, 7, 8, 0.82) 30%,
+    rgba(10, 7, 8, 0.34) 62%,
+    rgba(10, 7, 8, 0) 100%
+  );
+}
+
+/*
+ * Horizontal scroll rail: snap points, no visible scrollbar, edges faded so
+ * the row reads as continuing past the viewport rather than being cut off.
+ *
+ * The mask fades anything within `--rail-fade` of either edge, focus rings
+ * included — so a rail should never be the only thing indicating focus.
+ */
+.rail {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--rail-fade, 1.5rem),
+    #000 calc(100% - var(--rail-fade, 1.5rem)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--rail-fade, 1.5rem),
+    #000 calc(100% - var(--rail-fade, 1.5rem)),
+    transparent 100%
+  );
+}
+
+/* Overrides the 10px global scrollbar for this element only. */
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
    Ambient motion
    The hero's background is three slow blurred orbs on long, offset cycles.
    Long durations and low opacity are what keep it "expensive" rather than
@@ -387,6 +519,38 @@
 
 .animate-sheen {
   animation: sheen 1.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/*
+ * Loading placeholder. Same 1.6s curve as the CTA sheen above, so the two
+ * moving highlights in the product are visibly the same gesture at different
+ * speeds rather than two unrelated animations.
+ *
+ * The band travels between --line and --ash-2 over an --ash body: the exact
+ * two hairline values already used for borders, so a skeleton reads as the
+ * surface's own edge treatment rather than as a foreign grey.
+ */
+@keyframes shimmer {
+  from {
+    background-position: -150% 0;
+  }
+  to {
+    background-position: 250% 0;
+  }
+}
+
+.skeleton {
+  background-color: var(--ash);
+  background-image: linear-gradient(
+    90deg,
+    var(--line) 0%,
+    var(--ash-2) 50%,
+    var(--line) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  border-radius: var(--radius-sm);
+  animation: shimmer 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

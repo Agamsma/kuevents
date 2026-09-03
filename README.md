@@ -194,10 +194,25 @@ scarce on purpose — it marks the single most important thing on a screen and
 nothing else, which is what keeps it legible as "this matters". The one glowing
 element on the landing page is the *Organize an event* button.
 
-One tension, deliberately managed: crimson is the brand *and* red is the gate's
-refusal. They are kept far apart in value — brand crimson is deep and
-desaturated, the refusal is a bright alarm red that floods the entire viewport.
-At a gate you never read a small red chip; the whole screen is the signal.
+Both are reconciled to KU's published brand identity — KU Red `#C02722`, KU
+Yellow `#F7D70A`, KU Orange `#F78543`. Every accent holds the official OKLCH
+*hue* exactly and moves only lightness, because on a near-black ground the two
+colours fail in opposite directions: KU Red is too **dark** (`#C02722` measures
+3.40:1 on the obsidian ground, failing AA for text) while KU Yellow is too
+**bright** (14.02:1, far too loud for a colour whose job is scarcity). So red
+lifts, yellow drops, and they meet in a legible band. That is the whole scale.
+
+One tension worth being accurate about: crimson is the brand *and* red is the
+gate's refusal. They are **not** far apart in colour — brand crimson sits at
+L 0.616 / hue 27.9 and the refusal at L 0.658 / hue 21.6, about 0.04 in
+lightness and 6 degrees in hue. Side by side at the same size they would be
+hard to tell apart, and no amount of tuning fixes that while crimson stays
+faithful to KU Red.
+
+What separates them is **deployment scale, not value.** Brand crimson only ever
+appears small — a chip, a rule, a button, a focus ring. A refusal floods the
+entire viewport. At a gate you never read a small red chip; the whole screen is
+the signal, and that is the distinction the marshal is actually reading.
 
 Text is bone, never pure white. Pure white on near-black is the harsh,
 fatiguing combination this interface is specifically trying not to be.

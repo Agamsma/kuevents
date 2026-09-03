@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0b0d14",
-  "theme_color": "#0b0d14",
+  "background_color": "#0a0708",
+  "theme_color": "#0a0708",
   "categories": ["events", "productivity"],
   "icons": [
     {

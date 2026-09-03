@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Locally installed Claude Code plugins. Third-party CommonJS helper
+    // scripts we neither wrote nor ship — linting them buries our own
+    // findings under a wall of no-require-imports errors.
+    ".claude/**",
   ]),
 ]);
 

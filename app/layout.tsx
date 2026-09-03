@@ -59,6 +59,19 @@ export const metadata: Metadata = {
     title: "KU Events",
     statusBarStyle: "black-translucent",
   },
+  // TODO(logo): once public/ku-logo-reversed.svg exists, add the university
+  // emblem as an additional icon entry rather than replacing /icon.svg:
+  //
+  //   icon: [
+  //     { url: "/icon.svg", type: "image/svg+xml" },
+  //     { url: "/ku-logo-reversed.svg", type: "image/svg+xml", sizes: "any" },
+  //   ],
+  //
+  // The emblem is a detailed shield with a wordmark inside it; at 16–32px it
+  // turns to mush, so the ticket glyph stays the small-size favicon and the
+  // emblem serves the large surfaces. /icon.svg now carries the corrected
+  // --obsidian ground and --crimson stroke (it was #0b0d14 / #e5484d, neither
+  // of which was a KU colour or a token in this system).
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",

@@ -96,7 +96,10 @@ export default function GlobalError({
               padding: "0.75rem 1.5rem",
               borderRadius: "9999px",
               border: "none",
-              background: "#e0475c",
+              // Literal, not var(--crimson): global-error replaces the whole
+              // document, so globals.css may never have loaded. Keep in step
+              // with --crimson by hand.
+              background: "#da5045",
               color: "#1a0207",
               fontSize: "0.9375rem",
               fontWeight: 500,
