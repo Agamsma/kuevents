@@ -222,6 +222,15 @@ notches, a dashed tear line, monospaced field labels above each value. The
 directory card, the pass, the proposal form and the gate console all speak one
 physical language. `components/ui/stub.tsx` is the whole system.
 
+The directory card is a **portrait poster**, 2:3 — the proportion of a printed
+event bill — with the title, venue and time set over the image rather than in a
+panel below it. An event is sold by its artwork, and a landscape band across the
+top of a text card gave the artwork the smaller half. The stub vernacular
+survives the move: the notches and tear line drop to a short torn foot, so the
+card still reads as a picture stapled to a pass. Type over an arbitrary photo is
+held legible by `.spotlight`, whose opacity stops are derived against a
+blown-out white cover in `app/globals.css` rather than eyeballed.
+
 Type does three jobs: **Fraunces** carries the brand voice (a soft, high-contrast
 serif with optical sizing and a "wonk" axis — warm at display sizes rather than
 institutional), **Instrument Sans** reads underneath it, **JetBrains Mono**

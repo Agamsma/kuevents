@@ -319,10 +319,12 @@
 /*
  * Portrait poster crop, 2:3 — the proportion of a printed event bill.
  *
- * Distinct from the landing directory's landscape band, which is a fixed
- * `h-[10.5rem]` because its height is pinned to the stub's notch position
- * (`notchAt="10.5rem"`). That one cannot become a ratio without the notches
- * drifting off the tear line, so it is deliberately left alone.
+ * This began as the exception to the landing directory's landscape band, which
+ * was a fixed `h-[10.5rem]` because its height was pinned to the stub's notch
+ * position (`notchAt="10.5rem"`) — a ratio there would have drifted the notches
+ * off the tear line. `EventCard` resolves that by moving the notches onto a
+ * torn foot of their own (`stub-notched` with `--at: 0%`), which lands them on
+ * the seam at any width. The band is gone and every cover is now a poster.
  */
 .poster {
   aspect-ratio: 2 / 3;
@@ -368,6 +370,27 @@
     rgba(10, 7, 8, 0.34) 62%,
     rgba(10, 7, 8, 0) 100%
   );
+}
+
+/*
+ * A chip that sits on top of an arbitrary cover image.
+ *
+ * `.glass-strong` cannot do this job: it is white at 7% alpha, a lift, which
+ * reads correctly on the dark surfaces everywhere else in the app and inverts
+ * over a bright photo — compositing to near-white and taking the bone and gold
+ * labels with it. `.spotlight` does not rescue it, because that gradient is
+ * deliberately transparent at the top edge where these chips sit.
+ *
+ * Derived the same way as `.spotlight`, against the same worst case. Obsidian
+ * at 82% over pure white composites to 0.034 luminance, which leaves the
+ * dimmest label set here — 9px `text-gold` (#d6be3d, luminance 0.520) — at
+ * 6.8:1. Literal rgba rather than color-mix, for the reason given above.
+ */
+.chip-on-photo {
+  background: rgba(10, 7, 8, 0.82);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line-strong);
 }
 
 /*
