@@ -4,7 +4,7 @@ import { Timestamp } from "firebase-admin/firestore";
 import { ApiError, apiRoute, readJson } from "@/lib/api-handler";
 import { adminDb } from "@/lib/firebase-admin";
 import { requireCaller } from "@/lib/server-auth";
-import { parseEventInput } from "@/app/api/events/route";
+import { parseEventInput } from "@/lib/event-input";
 import type { EventDoc } from "@/lib/types";
 
 export const runtime = "nodejs";
