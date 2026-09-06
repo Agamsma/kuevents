@@ -65,6 +65,19 @@ npm run seed        # sample events; promotes an account to superadmin
 > `localhost`. To test on a phone, tunnel the dev server (`ngrok http 3000`)
 > rather than using the LAN IP.
 
+### Node 22 or newer is a hard requirement
+
+`firebase-admin` v14 declares `engines: { node: ">=22" }`, and it is imported by
+every API route. On an older Node the package fails **at import**, which means
+the route module never loads — so instead of a useful error you get a bare 500
+with an empty body from every single endpoint, while pages and middleware carry
+on working normally. It looks like a credentials problem and is not one.
+
+`engines` in `package.json` pins this, and hosts read it. If you are on Vercel,
+check **Project Settings → General → Node.js Version** as well: a project
+created before this was set may still be pinned to an older major, and the
+project setting is what applies when a build starts.
+
 ---
 
 ## Roles
