@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { apiRoute } from "@/lib/api-handler";
 import { fetchPublicEvents, type PublicEvent } from "@/lib/events-server";
 
 export const runtime = "nodejs";
@@ -41,7 +42,7 @@ export type { PublicEvent };
  */
 const CACHE_CONTROL = "public, s-maxage=60, stale-while-revalidate=600";
 
-export async function GET() {
+export const GET = apiRoute("public events", async () => {
   try {
     const events = await fetchPublicEvents();
 
@@ -50,14 +51,15 @@ export async function GET() {
       { headers: { "cache-control": CACHE_CONTROL } },
     );
   } catch (error) {
+    // Kept as an explicit catch rather than delegating to the wrapper: this
+    // route answers an anonymous visitor, so a backend outage should read as
+    // "the calendar is down" and still carry an `events: []` the client can
+    // render around, not the wrapper's generic 500.
     console.error("[public events] failed", error);
 
-    // The landing page treats this as "no events" rather than an error screen:
-    // a visitor who has never seen the site does not need our stack trace, and
-    // the hero above it is still worth reading.
     return NextResponse.json(
       { ok: false, events: [], error: "The calendar is unavailable right now." },
       { status: 503 },
     );
   }
-}
+});

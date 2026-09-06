@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
+import { ApiError, apiRoute, readJson } from "@/lib/api-handler";
 import { adminDb } from "@/lib/firebase-admin";
-import { AuthError, requireCaller } from "@/lib/server-auth";
+import { requireCaller } from "@/lib/server-auth";
 import {
   EVENT_CATEGORIES,
   TRACK_LABELS,
@@ -127,27 +128,14 @@ export function parseEventInput(
  * at a trusted zero and `organizer_uid` comes from the verified token — never
  * from the body, which would let anyone create events in someone else's name.
  */
-export async function POST(request: Request) {
-  let caller;
-  try {
-    caller = await requireCaller(request, ["organizer", "superadmin"]);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    throw error;
-  }
+export const POST = apiRoute("events create", async (request) => {
+  const caller = await requireCaller(request, ["organizer", "superadmin"]);
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
-  }
+  const body = await readJson<Record<string, unknown>>(request);
 
   const parsed = parseEventInput(body);
   if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
+    throw new ApiError(parsed.error, 400);
   }
 
   const status: EventStatus =
@@ -181,7 +169,7 @@ export async function POST(request: Request) {
     event_id: ref.id,
     event: { ...event, id: ref.id },
   });
-}
+});
 
 /**
  * Moves an event through its lifecycle, including approving and rejecting
@@ -191,32 +179,24 @@ export async function POST(request: Request) {
  * organizer who approves becomes `organizer_uid`, because from that point they
  * are the one accountable for the gate, the roster and the venue.
  */
-export async function PATCH(request: Request) {
-  let caller;
-  try {
-    caller = await requireCaller(request, ["organizer", "superadmin"]);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    throw error;
-  }
+export const PATCH = apiRoute("events patch", async (request) => {
+  const caller = await requireCaller(request, ["organizer", "superadmin"]);
 
-  let body: { event_id?: unknown; status?: unknown; review_note?: unknown; capacity?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
-  }
+  const body = await readJson<{
+    event_id?: unknown;
+    status?: unknown;
+    review_note?: unknown;
+    capacity?: unknown;
+  }>(request);
 
   if (typeof body.event_id !== "string" || !body.event_id) {
-    return NextResponse.json({ error: "`event_id` is required." }, { status: 400 });
+    throw new ApiError("`event_id` is required.", 400);
   }
   if (
     typeof body.status !== "string" ||
     !VALID_STATUS.includes(body.status as EventStatus)
   ) {
-    return NextResponse.json({ error: "Unknown status." }, { status: 400 });
+    throw new ApiError("Unknown status.", 400);
   }
 
   const nextStatus = body.status as EventStatus;
@@ -224,7 +204,7 @@ export async function PATCH(request: Request) {
   const snap = await ref.get();
 
   if (!snap.exists) {
-    return NextResponse.json({ error: "Event not found." }, { status: 404 });
+    throw new ApiError("Event not found.", 404);
   }
 
   const event = snap.data() as EventDoc;
@@ -235,7 +215,7 @@ export async function PATCH(request: Request) {
   const ownsIt = event.organizer_uid === caller.uid;
 
   if (caller.role !== "superadmin" && !ownsIt && !isPendingReview) {
-    return NextResponse.json({ error: "That is not your event." }, { status: 403 });
+    throw new ApiError("That is not your event.", 403);
   }
 
   const update: Record<string, unknown> = {
@@ -263,4 +243,4 @@ export async function PATCH(request: Request) {
   await ref.update(update);
 
   return NextResponse.json({ ok: true, status: nextStatus });
-}
+});

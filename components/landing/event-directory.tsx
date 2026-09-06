@@ -17,6 +17,16 @@ import { toast } from "@/components/ui/toast";
 
 type TabValue = "ALL" | EventTrack;
 
+/** JSON.parse that returns null instead of throwing on a non-JSON body. */
+function safeParse(text: string): { events?: unknown; error?: string } | null {
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.error("[directory] non-JSON response:", text.slice(0, 500));
+    return null;
+  }
+}
+
 /**
  * Four columns at `lg`, and that number is not arbitrary.
  *
@@ -67,7 +77,22 @@ export function EventDirectory() {
     try {
       if (!user) {
         const response = await fetch("/api/events/public");
-        const body = await response.json();
+
+        // `response.ok` is checked rather than assumed. The route answers a
+        // failure with `{ ok: false, events: [] }` and a 503, and reading only
+        // `body.events` turned that into a confident "Nothing published yet" —
+        // a backend outage rendered as an editorial statement. It also parsed
+        // unconditionally, so a crashed function with an empty body surfaced as
+        // `Unexpected end of JSON input` instead of the actual status.
+        const text = await response.text();
+        const body = text ? safeParse(text) : null;
+
+        if (!response.ok || !body) {
+          throw new Error(
+            body?.error ?? `The calendar service returned ${response.status}.`,
+          );
+        }
+
         setEvents((body.events ?? []) as EventDoc[]);
         return;
       }
@@ -88,7 +113,13 @@ export function EventDirectory() {
       console.error("[directory] load failed", error);
       toast.error("Could not load events", {
         id: "directory",
-        description: "Check your connection and retry.",
+        // "Check your connection" was the description for every failure,
+        // including ones where the connection was demonstrably fine and the
+        // server was down. Blaming the visitor's wifi for our outage sends
+        // them to reset a router instead of telling us something is broken.
+        description: navigator.onLine
+          ? "The service is having trouble. Please try again shortly."
+          : "You appear to be offline. Reconnect and retry.",
       });
     } finally {
       setLoading(false);

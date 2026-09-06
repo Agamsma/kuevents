@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { Firestore } from "firebase-admin/firestore";
 
+import { ApiError, apiRoute, readJson } from "@/lib/api-handler";
 import { adminDb } from "@/lib/firebase-admin";
-import { AuthError, requireCaller } from "@/lib/server-auth";
+import { requireCaller } from "@/lib/server-auth";
 import type {
   CheckInLogDoc,
   SyncResponse,
@@ -54,36 +55,26 @@ function isScan(value: unknown): value is SyncScanPayload {
  *  - **Every scan is logged**, including refusals. The audit trail is the point:
  *    "who let this person in, on what device, and when" must survive the event.
  */
-export async function POST(request: Request) {
-  let caller;
-  try {
-    caller = await requireCaller(request, ["scanner", "organizer", "superadmin"]);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    console.error("[sync] auth check failed", error);
-    return NextResponse.json({ error: "Auth unavailable." }, { status: 500 });
-  }
+export const POST = apiRoute("sync", async (request) => {
+  const caller = await requireCaller(request, [
+    "scanner",
+    "organizer",
+    "superadmin",
+  ]);
 
   // Optional second factor for gate devices: a shared key configured on the
   // scanner build. Skipped entirely when SYNC_API_KEY is unset.
   const requiredKey = process.env.SYNC_API_KEY;
   if (requiredKey && requiredKey !== "change-me-to-a-long-random-string") {
     if (request.headers.get("x-ku-sync-key") !== requiredKey) {
-      return NextResponse.json({ error: "Bad sync key." }, { status: 403 });
+      throw new ApiError("Bad sync key.", 403);
     }
   }
 
-  let body: SyncRequestBody;
-  try {
-    body = (await request.json()) as SyncRequestBody;
-  } catch {
-    return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
-  }
+  const body = await readJson<SyncRequestBody>(request);
 
   if (!Array.isArray(body.scans)) {
-    return NextResponse.json({ error: "`scans` must be an array." }, { status: 400 });
+    throw new ApiError("`scans` must be an array.", 400);
   }
 
   if (body.scans.length === 0) {
@@ -97,18 +88,12 @@ export async function POST(request: Request) {
   }
 
   if (body.scans.length > MAX_BATCH) {
-    return NextResponse.json(
-      { error: `Batch too large. Send at most ${MAX_BATCH} scans.` },
-      { status: 400 },
-    );
+    throw new ApiError(`Batch too large. Send at most ${MAX_BATCH} scans.`, 400);
   }
 
   const invalid = body.scans.findIndex((scan) => !isScan(scan));
   if (invalid !== -1) {
-    return NextResponse.json(
-      { error: `Malformed scan at index ${invalid}.` },
-      { status: 400 },
-    );
+    throw new ApiError(`Malformed scan at index ${invalid}.`, 400);
   }
 
   const scans = body.scans as SyncScanPayload[];
@@ -140,7 +125,7 @@ export async function POST(request: Request) {
     rejected: results.length - accepted - duplicates,
     results,
   });
-}
+});
 
 async function applyScan({
   db,

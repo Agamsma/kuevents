@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
-import { bookPass } from "@/lib/booking";
+import { BookingFailure, bookPass } from "@/lib/booking";
 import { fetchEvent, fetchMyTickets } from "@/lib/firestore-queries";
 import {
   formatDate,
@@ -83,18 +83,28 @@ export function EventDetail({ eventId }: { eventId: string }) {
     setBooking(true);
     try {
       const token = await getIdToken();
-      if (!token) throw new Error("Your session expired. Sign in again.");
+      if (!token) {
+        throw new BookingFailure("Your session expired. Sign in again.");
+      }
 
       const ticketId = await bookPass({ event: state.event, token });
       router.push(`/tickets/${ticketId}`);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Booking failed.";
-      if (message !== "cancelled") {
-        toast.error("Could not get you a pass", {
-          id: "book",
-          description: message,
-        });
-      }
+      // Log the real error, show a written one. `bookPass` throws messages
+      // meant for a student; anything else reaching here is an internal fault
+      // whose text ("Failed to execute 'json' on 'Response'") explains nothing
+      // to the person holding the phone and looks like the app blaming them.
+      console.error("[event] booking failed", error);
+
+      if (error instanceof Error && error.message === "cancelled") return;
+
+      toast.error("Could not get you a pass", {
+        id: "book",
+        description:
+          error instanceof BookingFailure
+            ? error.message
+            : "Something went wrong on our side. No pass was issued — please try again.",
+      });
     } finally {
       setBooking(false);
     }

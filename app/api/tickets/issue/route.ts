@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { AuthError, requireCaller } from "@/lib/server-auth";
-import { BookingError, getEvent, issueTicket } from "@/lib/tickets-server";
+import { ApiError, apiRoute, readJson } from "@/lib/api-handler";
+import { requireCaller } from "@/lib/server-auth";
+import { getEvent, issueTicket } from "@/lib/tickets-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,45 +14,26 @@ export const dynamic = "force-dynamic";
  * are enforced inside `issueTicket`'s transaction, not here — checking first
  * and writing after would let two simultaneous taps both pass.
  */
-export async function POST(request: Request) {
-  let caller;
-  try {
-    caller = await requireCaller(request);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    throw error;
-  }
+export const POST = apiRoute("issue", async (request) => {
+  // `AuthError` and `BookingError` both carry a `status`, so the wrapper turns
+  // them into their intended response. Only genuine bugs reach its 500 branch.
+  const caller = await requireCaller(request);
 
-  let body: { event_id?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
-  }
+  const body = await readJson<{ event_id?: unknown }>(request);
 
   if (typeof body.event_id !== "string" || !body.event_id) {
-    return NextResponse.json({ error: "`event_id` is required." }, { status: 400 });
+    throw new ApiError("`event_id` is required.", 400);
   }
 
   const event = await getEvent(body.event_id);
   if (!event) {
-    return NextResponse.json({ error: "Event not found." }, { status: 404 });
+    throw new ApiError("Event not found.", 404);
   }
 
-  try {
-    const ticket = await issueTicket({
-      eventId: event.id,
-      user: { uid: caller.uid, email: caller.email, name: caller.name },
-    });
+  const ticket = await issueTicket({
+    eventId: event.id,
+    user: { uid: caller.uid, email: caller.email, name: caller.name },
+  });
 
-    return NextResponse.json({ ok: true, ticket_id: ticket.id });
-  } catch (error) {
-    if (error instanceof BookingError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    console.error("[issue] failed", error);
-    return NextResponse.json({ error: "Could not issue a pass." }, { status: 500 });
-  }
-}
+  return NextResponse.json({ ok: true, ticket_id: ticket.id });
+});

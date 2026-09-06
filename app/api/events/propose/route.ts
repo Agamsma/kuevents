@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { Timestamp } from "firebase-admin/firestore";
 
+import { ApiError, apiRoute, readJson } from "@/lib/api-handler";
 import { adminDb } from "@/lib/firebase-admin";
-import { AuthError, requireCaller } from "@/lib/server-auth";
+import { requireCaller } from "@/lib/server-auth";
 import { parseEventInput } from "@/app/api/events/route";
 import type { EventDoc } from "@/lib/types";
 
@@ -20,35 +21,19 @@ const MAX_OPEN_PROPOSALS = 3;
  * organizer approves it. The status is hardcoded here rather than read from the
  * body: a student who could set their own status could self-publish.
  */
-export async function POST(request: Request) {
-  let caller;
-  try {
-    // No role restriction — proposing is the one thing every student can do.
-    caller = await requireCaller(request);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
-    }
-    throw error;
-  }
+export const POST = apiRoute("propose", async (request) => {
+  // No role restriction — proposing is the one thing every student can do.
+  const caller = await requireCaller(request);
 
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Body must be JSON." }, { status: 400 });
-  }
+  const body = await readJson<Record<string, unknown>>(request);
 
   const parsed = parseEventInput(body);
   if (!parsed.ok) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
+    throw new ApiError(parsed.error, 400);
   }
 
   if (parsed.value.starts_at < Date.now()) {
-    return NextResponse.json(
-      { error: "Pick a date in the future." },
-      { status: 400 },
-    );
+    throw new ApiError("Pick a date in the future.", 400);
   }
 
   const db = adminDb();
@@ -63,11 +48,9 @@ export async function POST(request: Request) {
     .get();
 
   if (open.size >= MAX_OPEN_PROPOSALS) {
-    return NextResponse.json(
-      {
-        error: `You already have ${open.size} proposals waiting on a review. Wait for one to be decided before sending another.`,
-      },
-      { status: 429 },
+    throw new ApiError(
+      `You already have ${open.size} proposals waiting on a review. Wait for one to be decided before sending another.`,
+      429,
     );
   }
 
@@ -98,4 +81,4 @@ export async function POST(request: Request) {
   });
 
   return NextResponse.json({ ok: true, event_id: ref.id });
-}
+});
