@@ -59,6 +59,23 @@ export default function proxy(request: NextRequest) {
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-Frame-Options", "DENY");
+
+  /*
+   * Sign-in is a popup, and this is the header that decides whether it works.
+   *
+   * `signInWithPopup` opens accounts.google.com and then polls `popup.closed`
+   * to notice when the user finishes or dismisses it. Under the default
+   * `same-origin`, the browser severs the opener relationship and blocks that
+   * read — the console fills with "Cross-Origin-Opener-Policy policy would
+   * block the window.closed call" and the promise never settles, so sign-in
+   * hangs with no error to show.
+   *
+   * `same-origin-allow-popups` keeps this document isolated from anything that
+   * opens *it* while still permitting popups it opened itself. Set explicitly
+   * rather than left to the platform's default, because which default applies
+   * varies by host and this is not a header to discover in production.
+   */
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   // The scanner needs the camera; nothing else on the origin does.
   response.headers.set(
     "Permissions-Policy",
