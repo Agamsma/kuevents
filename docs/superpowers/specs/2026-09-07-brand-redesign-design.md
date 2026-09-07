@@ -84,14 +84,22 @@ ground. Worst cases are on `--paper-sunk`: `--ink-soft` at 5.05:1 and `--ku-red`
 5.08:1. `--ink-faint` is 3.38–3.92:1 across the three and is therefore restricted to
 non-text use everywhere, without exception.
 
-**Gold changes job.** KU Yellow is 1.34:1 on paper. Darkening it until it passes
-(`#846A04`, 4.87:1) yields bronze, not gold. So gold ceases to be a colour and
-becomes a **material**: foil, expressed as a multi-stop gradient sheen across a large
-area on the pass, never as text and never as a small mark. On a paper-and-press
-system this is what gold actually is on a printed ticket.
+**Gold is removed as a token entirely.** KU Yellow is 1.34:1 on paper — unusable for
+text or any small mark — and darkening it until it passes (`#846A04`, 4.87:1) yields
+bronze, not gold. Rather than force it, the palette drops it. Yellow survives only
+where it genuinely belongs: inside the emblem artwork, at the core of the flame.
 
-KU Orange (2.35:1) likewise survives only as a **filled** urgency band with ink text
-on it — never as coloured text on paper.
+This leaves **paper, ink, and KU Red**, with orange as the single secondary. Three
+colours and a neutral scale. Fewer colours is the more premium result, and it removes
+the awkwardness of a scarce accent that has no legible form on a light ground.
+
+The pass keeps a foil sweep, but it is no longer gold. **The foil is the flame
+gradient from the emblem** — KU Red into KU Orange into a pale warm highlight —
+swept across the card as it tilts. It echoes the crest instead of introducing a
+colour the crest does not lead with, and it needs no yellow token to exist.
+
+KU Orange (2.35:1) survives only as a **filled** urgency band with ink text on it —
+never as coloured text on paper.
 
 **Obsidian (gate only)** — the existing dark tokens are retained unchanged for
 `/scanner` and the verdict overlay. They are already tuned and already correct for
@@ -151,9 +159,39 @@ Used **rarely and large** — a seal, not a logo bug.
   the landing hero.
 - **Never** shrunk into a navbar corner; at that size the peacock and flame turn to
   mud. The header carries a wordmark instead.
-- Needs an SVG. The current asset is a 1024px PNG, which will not hold up at hero
-  scale or on print-quality displays. **Sourcing or tracing an SVG is a Phase 1
-  deliverable and a blocker for the hero.**
+#### Asset audit — the emblem is currently unbuildable at size
+
+Measured, not assumed:
+
+| Asset | Spec | Verdict |
+| --- | --- | --- |
+| `public/KU-Emblem-Apr23-1024x1024.png` | 1024×1024, **colour type 2, no alpha** | Baked white background. Renders as a white box on `--paper`. Unusable as-is. |
+| Vertical lockup (mark + wordmark) | **200×241**, alpha present | Correct artwork, far too small. Inline mark only; blurs above ~120px. |
+| `KU-X-NAAC-A-Logo_Web-01.webp` | webp VP8X | Usable for a footer accreditation mark at small size. |
+| "Untitled design.svg" | **0 `<path>` elements**, 2 embedded base64 PNGs | A raster in an SVG wrapper. Scales no better than the PNG. Not a vector. |
+
+There is no true vector and no large transparent asset. **§1.5 as written cannot be
+implemented today.** Resolution paths, in order of preference:
+
+1. **Obtain the real vector** from KU's brand/marketing team — an `.svg`, `.ai`, `.eps`
+   or `.pdf`. Cheapest by far and the only route that is unambiguously on-brand.
+2. **Trace to SVG.** The mark is geometrically tractable — the flame is nested arcs,
+   the peacock a single silhouette. The wordmark is set type and would need either
+   tracing or substitution, and substituting a university's wordmark typeface is a
+   brand decision, not a technical one.
+3. **Design around it.** Keep the emblem at the sizes the 200px raster genuinely
+   supports, and build the hero from type and a vector recreation of the flame arc
+   alone — no peacock, no wordmark at scale.
+
+Path 1 is a question for the university and should be asked now, not at Phase 2.
+Until one of these lands, the hero is blocked and Phase 2 cannot complete.
+
+#### NAAC A+
+
+The accreditation lockup is real institutional credibility and universities display
+it deliberately. It belongs in the site footer at small size, and optionally in the
+landing page's closing band — never in the header, where it competes with the
+wordmark for the same job.
 
 ### 1.6 Components rebuilt in this phase
 
@@ -190,8 +228,12 @@ within its existing dark system but not restructured. Gets its own spec.
 
 - **Two colour systems in one codebase** invites drift. Mitigated by keeping them in
   one file with an explicit boundary comment, and by the contrast test covering both.
-- **The emblem SVG is a hard dependency** for the Phase 2 hero. If no vector exists,
-  it must be traced before that phase starts.
+- **The emblem SVG is a hard dependency** for the Phase 2 hero, and the audit in §1.5
+  confirms **no vector currently exists** — the one file claiming to be one contains
+  zero paths. This is the single most likely thing to stall the redesign, and the ask
+  to KU's brand team should go out before Phase 1 implementation starts, not after.
+- **The in-repo crest has no alpha channel**, so it cannot be placed on the paper
+  ground at all until it is replaced or its background is removed.
 - **Scope creep into the scanner.** The constraint is stated above; the Phase 1
   verification step exists specifically to catch it.
 - **Shared-element transitions** are the most failure-prone item in Phase 2 — they
