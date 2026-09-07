@@ -78,6 +78,31 @@ check **Project Settings → General → Node.js Version** as well: a project
 created before this was set may still be pinned to an older major, and the
 project setting is what applies when a build starts.
 
+### Do not remove the `jose` override
+
+`package.json` pins `jose` to `^5.10.0` through `overrides`. It is load-bearing.
+
+The chain is `firebase-admin` → `jwks-rsa` → `jose`. `jwks-rsa` is CommonJS and
+does a plain `require('jose')`, but `jose` v6 is ESM-only. Node 22.12+ supports
+`require(esm)` natively, so this loads fine locally and the problem is
+completely invisible in development — but Vercel's function runtime patches
+`Module._load`, and that loader does not support it. Every route that imports
+`firebase-admin` died at **import time** with
+
+```
+Error: require() of ES Module .../jose/dist/webapi/index.js
+  from .../jwks-rsa/src/utils.js not supported   { code: 'ERR_REQUIRE_ESM' }
+```
+
+which surfaces as the same empty-bodied 500 described above, because the module
+never loads and `apiRoute` never gets to run. `jose` v5 publishes a real CJS
+build under its `require` export condition, so pinning it removes the ESM
+`require` altogether. `jwks-rsa` only uses `importJWK` and `exportSPKI`, both
+present in v5.
+
+Drop the override once `jwks-rsa` switches to a dynamic `import()`. Until then,
+`npm ls jose` should report **5.x** — if it reports 6.x, production is broken.
+
 ---
 
 ## Roles
