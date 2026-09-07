@@ -56,6 +56,40 @@ export default function RouteError({
               </div>
             </div>
           ) : null}
+
+          {/*
+           * The message, on screen, behind one tap.
+           *
+           * It used to go only to `console.error`, which is unreachable for the
+           * person actually hitting the fault: a marshal on a phone at a gate,
+           * or a student who cannot open DevTools and would not be asked to.
+           * "Something went wrong" with the cause hidden one layer away turns
+           * every report into a guessing game — the fault is reproducible for
+           * them and invisible to everyone who could fix it.
+           *
+           * Collapsed by default so the reassuring copy still leads, and the
+           * stack is capped: past a few frames it is minified noise that pushes
+           * the retry button off a small screen.
+           */}
+          {error.message ? (
+            <details className="group mt-6">
+              <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.14em] text-bone-faint transition-colors hover:text-bone-dim">
+                Technical details
+              </summary>
+
+              <div className="mt-2.5 max-h-52 overflow-auto rounded-md bg-black/25 px-3 py-2.5">
+                <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-bone-dim">
+                  {error.message}
+                </pre>
+
+                {error.stack ? (
+                  <pre className="mt-2 whitespace-pre-wrap break-words border-t border-[color:var(--line)] pt-2 font-mono text-[10px] leading-relaxed text-bone-faint">
+                    {error.stack.split("\n").slice(1, 7).join("\n")}
+                  </pre>
+                ) : null}
+              </div>
+            </details>
+          ) : null}
         </div>
 
         <Perforation className="mx-6" />
