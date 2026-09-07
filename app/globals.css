@@ -300,6 +300,31 @@
   line-height: 1.02;
 }
 
+/*
+ * Ink on paper reads heavier than bone on obsidian at the same weight — dark
+ * marks on a light field gain apparent mass, where light marks on a dark field
+ * bloom and lose it. So the display face steps down 600 → 500 and opens its
+ * tracking rather than holding a setting tuned for the opposite ground.
+ *
+ * Fraunces is variable, so this is a move along the weight axis, not a second
+ * font file.
+ */
+[data-theme="paper"] .display {
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="paper"] {
+  font-weight: 380;
+  letter-spacing: -0.005em;
+}
+
+/*
+ * The mono scale deliberately does NOT change between grounds. It carries
+ * codes, counts and timestamps, and a marshal reading a code off a pass and a
+ * student reading it off their own phone must see the same rhythm.
+ */
+
 /* Printed ticket field label: MONO, tiny, letterspaced, dim. */
 .field-label {
   font-family: var(--font-mono);
