@@ -164,6 +164,22 @@
   --ku-red: #c02722; /* 5.54:1 — official, unmodified */
   --ku-orange: #f78543; /* 2.35:1 — filled bands only, never text */
 
+  /*
+   * Status, re-tuned for paper.
+   *
+   * The obsidian values are light-on-dark and collapse here: admit measures
+   * 1.77:1 on this ground, urgent 2.20:1, refuse 3.29:1 — all of them below AA,
+   * two of them below the 3:1 floor for a meaningful non-text mark. A roster
+   * showing "checked in" in a green nobody can read is worse than showing
+   * nothing, because it looks like it worked.
+   *
+   * Same hue families, darkened until they hold on `--paper-sunk` too, which is
+   * the darkest surface any of them sit on.
+   */
+  --admit: #137a48; /* 5.04:1 paper · 4.63:1 sunk */
+  --refuse: #b3261e; /* 6.13:1 paper · 5.62:1 sunk */
+  --urgent: #a84c07; /* 5.32:1 paper · 4.88:1 sunk */
+
   /* Paper has no glow. Elevation is a contact shadow plus an ambient one. */
   --shadow-contact: 0 1px 2px #1a141612;
   --shadow-ambient: 0 12px 32px -8px #1a141614;
@@ -638,6 +654,44 @@
    Long durations and low opacity are what keep it "expensive" rather than
    "screensaver" — nothing should be fast enough to catch the eye deliberately.
    ─────────────────────────────────────────────────────────────────────────── */
+
+/*
+ * Ambient light on paper — the page's resting heartbeat.
+ *
+ * Two washes crossing on long, deliberately mismatched cycles (54s and 71s, no
+ * common factor for over an hour) so the room never repeats a state you could
+ * learn. This is the difference between a page that is *still* and a page that
+ * is *quiet*: nothing here should ever be caught moving, only noticed to have
+ * changed if you look back.
+ *
+ * Opacity and transform only, both compositor properties, so it costs a layer
+ * and no layout work. `will-change` is deliberately absent — promoting two
+ * full-viewport layers permanently for an effect this faint is a worse trade
+ * than the occasional repaint, especially on the phones this has to run on.
+ */
+@keyframes ambient-wash-a {
+  0%,
+  100% {
+    transform: translate3d(-4%, -2%, 0) scale(1.05);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translate3d(5%, 4%, 0) scale(1.18);
+    opacity: 0.9;
+  }
+}
+
+@keyframes ambient-wash-b {
+  0%,
+  100% {
+    transform: translate3d(3%, 5%, 0) scale(1.12);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(-5%, -3%, 0) scale(1);
+    opacity: 0.45;
+  }
+}
 
 @keyframes drift-a {
   0%,

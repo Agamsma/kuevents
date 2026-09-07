@@ -11,7 +11,7 @@ import {
   useTransform,
   type MotionValue,
 } from "framer-motion";
-import { ArrowRight, CalendarDays, MapPin, Sparkles, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, MapPin, Users } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { formatTime } from "@/lib/format";
@@ -164,7 +164,6 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
           <motion.div style={{ y: near }}>
             <Reveal delay={0.05}>
               <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                <Sparkles className="size-3 text-ku-red" />
                 Karnavati University
               </span>
             </Reveal>
@@ -338,7 +337,19 @@ function FeaturedMarquee({
           {/* .poster carries the 2:3 ratio, so the frame has height before the
               image loads and nothing reflows underneath it. */}
           <div className="poster relative">
-            <AnimatePresence mode="wait">
+            {/*
+              A true cross-fade, not `mode="wait"`.
+
+              With `wait`, the outgoing slide finishes fading to zero before the
+              incoming one starts — and since both are absolutely positioned in
+              an otherwise empty frame, that left the largest element above the
+              fold completely blank for half a second, every six seconds. Caught
+              in a screenshot that happened to land mid-rotation.
+
+              Overlapping them costs nothing here: they occupy the same box, so
+              one dissolves into the other.
+            */}
+            <AnimatePresence>
               <motion.div
                 key={event.id}
                 initial={{ opacity: 0 }}

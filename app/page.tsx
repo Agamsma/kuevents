@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Hero } from "@/components/landing/hero";
 import { EventDirectory } from "@/components/landing/event-directory";
 import { SiteFooter } from "@/components/site-footer";
+import { AmbientPaper } from "@/components/motion/ambient";
 
 export const metadata: Metadata = {
   title: "KU Events — everything happening on campus",
@@ -39,6 +40,7 @@ export default async function LandingPage() {
     // The front door is paper. The gate is the only surface that stays dark,
     // and it opts out by simply never carrying this attribute.
     <div data-theme="paper" className="min-h-dvh bg-paper text-ink">
+      <AmbientPaper />
       <SiteHeader />
       <main id="main" tabIndex={-1} className="outline-none">
         <Hero featured={featured} />

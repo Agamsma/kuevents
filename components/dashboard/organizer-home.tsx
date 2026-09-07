@@ -126,15 +126,15 @@ function Overview({
       {pendingCount > 0 ? (
         <Stub notched notchAt="calc(100% - 4.5rem)" className="overflow-hidden">
           <div className="flex items-start gap-4 px-5 pb-5 pt-5">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold/15 ring-1 ring-gold/30">
-              <Inbox className="size-5 text-gold" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 ring-1 ring-gold/30">
+              <Inbox className="size-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <h2 className="display text-[1.25rem] text-bone">
+              <h2 className="display text-[1.25rem] text-foreground">
                 {pendingCount} {pendingCount === 1 ? "proposal is" : "proposals are"}{" "}
                 waiting
               </h2>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-bone-dim">
+              <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">
                 A student has put something forward. Nothing appears on the
                 directory until an organizer approves it.
               </p>
@@ -157,18 +157,18 @@ function Overview({
         <Stub notched notchAt="calc(100% - 4.5rem)" className="overflow-hidden">
           <div className="px-5 pb-5 pt-5">
             <FieldLabel>Next up</FieldLabel>
-            <h2 className="display mt-2 text-[1.4rem] leading-tight text-bone">
+            <h2 className="display mt-2 text-[1.4rem] leading-tight text-foreground">
               {upcoming.title}
             </h2>
-            <div className="mt-2 font-mono text-[11px] text-bone-dim">
+            <div className="mt-2 font-mono text-[11px] text-muted-foreground">
               {formatDate(upcoming.starts_at)} · {formatTime(upcoming.starts_at)} ·{" "}
               {upcoming.venue}
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
-              <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint">
+              <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
                 {TRACK_LABELS[upcoming.track] ?? upcoming.track}
               </span>
-              <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint">
+              <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
                 {upcoming.tickets_issued ?? 0} issued
               </span>
             </div>
@@ -194,11 +194,11 @@ function Overview({
       ) : counts.events === 0 ? (
         <Stub notched className="px-6 py-14 text-center">
           <div className="mx-auto max-w-sm">
-            <CalendarClock className="mx-auto size-8 text-bone-faint" />
-            <div className="display mt-5 text-[1.5rem] text-bone">
+            <CalendarClock className="mx-auto size-8 text-subtle-foreground" />
+            <div className="display mt-5 text-[1.5rem] text-foreground">
               Nothing running yet
             </div>
-            <p className="mt-2.5 text-sm leading-relaxed text-bone-dim">
+            <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
               Create an event as a draft, check it reads right, then open it for
               booking.
             </p>

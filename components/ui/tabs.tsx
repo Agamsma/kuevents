@@ -41,8 +41,8 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "relative rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-bone-faint transition-colors",
-        "hover:text-bone-dim data-[state=active]:text-bone",
+        "relative rounded-full px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-subtle-foreground transition-colors",
+        "hover:text-muted-foreground data-[state=active]:text-foreground",
         className,
       )}
       {...props}
@@ -60,7 +60,7 @@ function TabsPill({ layoutId = "tab-pill" }: { layoutId?: string }) {
     <motion.span
       layoutId={layoutId}
       transition={{ type: "spring", stiffness: 420, damping: 34 }}
-      className="absolute inset-0 rounded-full bg-crimson/15 ring-1 ring-inset ring-crimson/30"
+      className="absolute inset-0 rounded-full bg-primary/15 ring-1 ring-inset ring-crimson/30"
     />
   );
 }

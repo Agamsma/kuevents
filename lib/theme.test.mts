@@ -13,15 +13,47 @@ import { contrastRatio } from "./color.ts";
  */
 const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
 
-/** Reads a custom property's literal hex value out of globals.css. */
-function token(name: string): string {
-  const match = new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})\\s*;`).exec(css);
-  assert.ok(match, `${name} is not defined as a literal hex in globals.css`);
+/**
+ * The body of one custom-property block, so lookups can be scoped.
+ *
+ * Necessary rather than tidy: several properties — `--admit`, `--refuse`,
+ * `--urgent`, `--line` — are now defined in *both* scales with different
+ * values. An unscoped search finds whichever appears first in the file and
+ * would happily measure the obsidian green against the paper ground and call
+ * it a pass.
+ */
+function scope(selector: string): string {
+  const start = css.indexOf(selector);
+  assert.ok(start !== -1, `no ${selector} block in globals.css`);
+
+  const open = css.indexOf("{", start);
+  const close = css.indexOf("\n}", open);
+  assert.ok(open !== -1 && close !== -1, `${selector} block is not closed`);
+
+  return css.slice(open, close);
+}
+
+const PAPER_BLOCK = scope('[data-theme="paper"]');
+const OBSIDIAN_BLOCK = scope(":root,");
+
+/** Reads a custom property's literal hex value out of one scale. */
+function token(name: string, block: string = PAPER_BLOCK): string {
+  const match = new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})\\s*;`).exec(block);
+  assert.ok(match, `${name} is not defined as a literal hex in this scale`);
   return match![1];
 }
 
 const PAPER_SURFACES = ["--paper", "--paper-raised", "--paper-sunk"] as const;
 const PAPER_TEXT = ["--ink", "--ink-dim", "--ink-soft", "--ku-red"] as const;
+
+/**
+ * Status colours are text too.
+ *
+ * "Checked in", "full", "3 seats left" are read, not merely noticed, and they
+ * are read on a roster during an event. The obsidian values measure 1.77:1,
+ * 3.29:1 and 2.20:1 on paper — this asserts the paper scale defines its own.
+ */
+const PAPER_STATUS = ["--admit", "--refuse", "--urgent"] as const;
 
 describe("paper scale", () => {
   it("holds AA for every text token on every paper surface", () => {
@@ -36,6 +68,33 @@ describe("paper scale", () => {
           `${text} on ${surface} is ${ratio.toFixed(2)}:1, below AA`,
         );
       }
+    }
+  });
+
+  it("holds AA for status colours on every paper surface", () => {
+    // These are read during an event, not merely noticed. A roster showing
+    // "checked in" in a green nobody can read is worse than showing nothing,
+    // because it looks like it worked.
+    for (const surface of PAPER_SURFACES) {
+      for (const status of PAPER_STATUS) {
+        const ratio = contrastRatio(token(status), token(surface));
+        assert.ok(
+          ratio >= 4.5,
+          `${status} on ${surface} is ${ratio.toFixed(2)}:1, below AA`,
+        );
+      }
+    }
+  });
+
+  it("does not reuse the obsidian status colours", () => {
+    // The obsidian values measure 1.77:1, 3.29:1 and 2.20:1 here. If the paper
+    // scale ever stops defining its own, this catches it.
+    for (const status of PAPER_STATUS) {
+      assert.notEqual(
+        token(status).toLowerCase(),
+        token(status, OBSIDIAN_BLOCK).toLowerCase(),
+        `${status} still uses the dark-ground value on paper`,
+      );
     }
   });
 
@@ -68,7 +127,10 @@ describe("obsidian scale is untouched", () => {
   it("still holds AA for gate text", () => {
     // The gate keeps the dark system. If this breaks, the scanner broke.
     for (const text of ["--bone", "--bone-dim", "--crimson"]) {
-      const ratio = contrastRatio(token(text), token("--obsidian"));
+      const ratio = contrastRatio(
+        token(text, OBSIDIAN_BLOCK),
+        token("--obsidian", OBSIDIAN_BLOCK),
+      );
       assert.ok(ratio >= 4.5, `${text} on --obsidian is ${ratio.toFixed(2)}:1`);
     }
   });

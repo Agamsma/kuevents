@@ -30,12 +30,12 @@ import { toast } from "@/components/ui/toast";
 
 /** How a status reads, and what it means a student can do. */
 const STATUS_STYLE: Record<EventStatus, { label: string; className: string }> = {
-  pending: { label: "In review", className: "text-gold border-gold/30 bg-gold/[0.08]" },
+  pending: { label: "In review", className: "text-primary border-primary/30 bg-primary/[0.08]" },
   rejected: { label: "Rejected", className: "text-refuse border-refuse/30 bg-refuse/[0.08]" },
-  draft: { label: "Draft", className: "text-bone-faint border-line" },
+  draft: { label: "Draft", className: "text-subtle-foreground border-line" },
   published: { label: "Open", className: "text-admit border-admit/30 bg-admit/[0.08]" },
-  live: { label: "Live now", className: "text-gold border-gold/30 bg-gold/[0.08]" },
-  ended: { label: "Ended", className: "text-bone-faint border-line" },
+  live: { label: "Live now", className: "text-primary border-primary/30 bg-primary/[0.08]" },
+  ended: { label: "Ended", className: "text-subtle-foreground border-line" },
   cancelled: { label: "Cancelled", className: "text-refuse border-refuse/30 bg-refuse/[0.08]" },
 };
 
@@ -195,8 +195,8 @@ export function EventsPanel({
       ) : events.length === 0 ? (
         <Stub notched className="px-6 py-14 text-center">
           <div className="mx-auto max-w-xs">
-            <div className="display text-[1.5rem] text-bone">No events yet</div>
-            <p className="mt-2 text-sm leading-relaxed text-bone-dim">
+            <div className="display text-[1.5rem] text-foreground">No events yet</div>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Create one as a draft, check it reads right, then open it for
               booking.
             </p>
@@ -254,10 +254,10 @@ function ManagedEvent({
       <div className="px-5 pb-5 pt-5">
         <div className="flex items-start justify-between gap-3">
           <Link href={`/organizer/${event.id}`} className="min-w-0 group">
-            <h2 className="display truncate text-[1.3rem] text-bone transition-colors group-hover:text-crimson">
+            <h2 className="display truncate text-[1.3rem] text-foreground transition-colors group-hover:text-primary">
               {event.title}
             </h2>
-            <div className="mt-1.5 font-mono text-[11px] text-bone-dim">
+            <div className="mt-1.5 font-mono text-[11px] text-muted-foreground">
               {formatDate(event.starts_at)} · {formatTime(event.starts_at)} ·{" "}
               {event.venue}
             </div>
@@ -273,33 +273,33 @@ function ManagedEvent({
         <div className="mt-5 flex items-end gap-6">
           <div>
             <FieldLabel>Issued</FieldLabel>
-            <div className="display mt-1 text-[1.75rem] leading-none text-bone tabular">
+            <div className="display mt-1 text-[1.75rem] leading-none text-foreground tabular">
               {issued}
               {event.capacity > 0 ? (
-                <span className="text-[1rem] text-bone-faint">/{event.capacity}</span>
+                <span className="text-[1rem] text-subtle-foreground">/{event.capacity}</span>
               ) : null}
             </div>
           </div>
 
           <div>
             <FieldLabel>Track</FieldLabel>
-            <div className="mt-1.5 font-mono text-sm text-bone-dim">
+            <div className="mt-1.5 font-mono text-sm text-muted-foreground">
               {TRACK_LABELS[event.track] ?? event.track}
             </div>
           </div>
 
           <div>
             <FieldLabel>Category</FieldLabel>
-            <div className="mt-1.5 font-mono text-sm text-bone-dim">
+            <div className="mt-1.5 font-mono text-sm text-muted-foreground">
               {event.category}
             </div>
           </div>
         </div>
 
         {event.capacity > 0 ? (
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/[0.07]">
+          <div className="mt-3 h-1 overflow-hidden rounded-full bg-accent">
             <div
-              className="h-full rounded-full bg-crimson transition-[width] duration-500"
+              className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -318,7 +318,7 @@ function ManagedEvent({
 
         <div className="ml-auto flex items-center gap-2">
         {busy ? (
-          <Loader2 className="size-4 animate-spin text-bone-faint" />
+          <Loader2 className="size-4 animate-spin text-subtle-foreground" />
         ) : event.status === "draft" ? (
           <Button size="sm" onClick={() => onSetStatus("published")}>
             Open for booking
@@ -518,11 +518,11 @@ function Input({
       <input
         id={id}
         name={name}
-        className="mt-1.5 w-full rounded-md border border-line bg-white/[0.03] px-3 py-2 text-sm text-bone placeholder:text-bone-faint focus:border-crimson focus:outline-none"
+        className="mt-1.5 w-full rounded-md border border-line bg-accent px-3 py-2 text-sm text-foreground placeholder:text-subtle-foreground focus:border-primary focus:outline-none"
         {...props}
       />
       {hint ? (
-        <p className="mt-1 font-mono text-[10px] text-bone-faint">{hint}</p>
+        <p className="mt-1 font-mono text-[10px] text-subtle-foreground">{hint}</p>
       ) : null}
     </div>
   );

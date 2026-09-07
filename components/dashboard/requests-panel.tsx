@@ -134,7 +134,7 @@ export function RequestsPanel({
 
   return (
     <>
-      <p className="mb-7 max-w-lg text-[14px] leading-relaxed text-bone-dim">
+      <p className="mb-7 max-w-lg text-[14px] leading-relaxed text-muted-foreground">
         Approving publishes the event to the campus directory and makes you its
         organizer — the roster and the gate become yours.
       </p>
@@ -205,37 +205,37 @@ function ProposalCard({
         <button type="button" onClick={onOpen} className="flex-1 px-5 pb-5 pt-5 text-left">
           <div className="flex items-start gap-4">
             <div className="shrink-0 text-center">
-              <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-gold">
+              <div className="font-mono text-[9px] uppercase tracking-[0.16em] text-primary">
                 {formatMonthAbbr(event.starts_at)}
               </div>
-              <div className="display text-[1.75rem] leading-none text-bone tabular">
+              <div className="display text-[1.75rem] leading-none text-foreground tabular">
                 {formatDayNum(event.starts_at)}
               </div>
             </div>
 
             <div className="min-w-0 flex-1">
-              <h2 className="display text-[1.2rem] leading-tight text-bone">
+              <h2 className="display text-[1.2rem] leading-tight text-foreground">
                 {event.title}
               </h2>
 
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-dim">
+                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
                   {TRACK_LABELS[event.track] ?? event.track}
                 </span>
-                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-dim">
+                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
                   {event.category}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-col gap-1 font-mono text-[10px] text-bone-dim">
+          <div className="mt-4 flex flex-col gap-1 font-mono text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1.5 truncate">
-              <MapPin className="size-3 shrink-0 text-bone-faint" />
+              <MapPin className="size-3 shrink-0 text-subtle-foreground" />
               {event.venue}
             </span>
             <span className="flex items-center gap-1.5">
-              <Users className="size-3 shrink-0 text-bone-faint" />
+              <Users className="size-3 shrink-0 text-subtle-foreground" />
               {event.expected_footfall} expected
             </span>
           </div>
@@ -327,20 +327,20 @@ function ReviewDialog({
               ).map(([label, value]) => (
                 <div key={label} className="flex items-baseline justify-between gap-4 py-2.5">
                   <dt className="field-label shrink-0">{label}</dt>
-                  <dd className="min-w-0 text-right text-[14px] text-bone">{value}</dd>
+                  <dd className="min-w-0 text-right text-[14px] text-foreground">{value}</dd>
                 </div>
               ))}
             </dl>
 
             {event.description ? (
-              <div className="rounded-xl border border-line bg-white/[0.02] p-4">
+              <div className="rounded-xl border border-line bg-accent p-4">
                 <FieldLabel>What happens</FieldLabel>
-                <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-bone-dim">
+                <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-muted-foreground">
                   {event.description}
                 </p>
               </div>
             ) : (
-              <p className="text-[13px] italic text-bone-faint">
+              <p className="text-[13px] italic text-subtle-foreground">
                 No description given.
               </p>
             )}
@@ -505,9 +505,9 @@ function EmptyQueue() {
   return (
     <Stub notched className="px-6 py-20 text-center">
       <div className="mx-auto max-w-sm">
-        <Inbox className="mx-auto size-9 text-bone-faint" />
-        <div className="display mt-5 text-[1.5rem] text-bone">Queue is clear</div>
-        <p className="mt-2.5 text-sm leading-relaxed text-bone-dim">
+        <Inbox className="mx-auto size-9 text-subtle-foreground" />
+        <div className="display mt-5 text-[1.5rem] text-foreground">Queue is clear</div>
+        <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
           Nothing waiting on a decision. New student proposals land here the
           moment they are sent.
         </p>

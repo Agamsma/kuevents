@@ -132,7 +132,7 @@ function AdminOverview({
        * dressed up as real data, which would be worse than saying nothing.
        */}
       {totalPeople === 0 || counts.events === 0 ? (
-        <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-bone-faint">
+        <p className="font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-subtle-foreground">
           Some totals fill in once you open the matching tab
         </p>
       ) : null}
@@ -140,10 +140,10 @@ function AdminOverview({
       {pendingCount > 0 ? (
         <Stub notched notchAt="calc(100% - 4.5rem)" className="overflow-hidden">
           <div className="px-5 pb-5 pt-5">
-            <h2 className="display text-[1.25rem] text-bone">
+            <h2 className="display text-[1.25rem] text-foreground">
               {pendingCount} {pendingCount === 1 ? "proposal" : "proposals"} waiting
             </h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-bone-dim">
+            <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">
               Any organizer can clear these — you do not have to. Nothing reaches
               the directory until one of them does.
             </p>
@@ -164,12 +164,12 @@ function AdminOverview({
       <Stub notched notchAt="calc(100% - 4.5rem)" className="overflow-hidden">
         <div className="px-5 pb-5 pt-5">
           <div className="flex items-start gap-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold/15 ring-1 ring-gold/30">
-              <ShieldCheck className="size-5 text-gold" />
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 ring-1 ring-gold/30">
+              <ShieldCheck className="size-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <h2 className="display text-[1.25rem] text-bone">Who can do what</h2>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-bone-dim">
+              <h2 className="display text-[1.25rem] text-foreground">Who can do what</h2>
+              <p className="mt-1.5 text-[14px] leading-relaxed text-muted-foreground">
                 Assigning the organizer role is how a KU account gets its own
                 dashboard, the review queue and the gate scanner.
               </p>
@@ -183,7 +183,7 @@ function AdminOverview({
                   <dt>
                     <FieldLabel>{ROLE_LABELS[role]}</FieldLabel>
                   </dt>
-                  <dd className="mt-1 font-mono text-[15px] text-bone tabular">
+                  <dd className="mt-1 font-mono text-[15px] text-foreground tabular">
                     {roleCounts[role] ?? 0}
                   </dd>
                 </div>

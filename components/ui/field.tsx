@@ -14,7 +14,7 @@ import { FieldLabel } from "@/components/ui/stub";
  */
 
 const baseField =
-  "w-full rounded-xl border border-line bg-white/[0.03] px-3.5 py-2.5 text-[15px] text-bone transition-colors placeholder:text-bone-faint focus:border-crimson focus:bg-white/[0.05] focus:outline-none disabled:opacity-50";
+  "w-full rounded-xl border border-line bg-accent px-3.5 py-2.5 text-[15px] text-foreground transition-colors placeholder:text-subtle-foreground focus:border-primary focus:bg-accent focus:outline-none disabled:opacity-50";
 
 export function TextField({
   label,
@@ -47,7 +47,7 @@ export function TextField({
           {error}
         </p>
       ) : hint ? (
-        <p className="mt-1.5 font-mono text-[10px] text-bone-faint">{hint}</p>
+        <p className="mt-1.5 font-mono text-[10px] text-subtle-foreground">{hint}</p>
       ) : null}
     </div>
   );
@@ -81,7 +81,7 @@ export function TextAreaField({
       {error ? (
         <p className="mt-1.5 text-[12px] text-refuse">{error}</p>
       ) : hint ? (
-        <p className="mt-1.5 font-mono text-[10px] text-bone-faint">{hint}</p>
+        <p className="mt-1.5 font-mono text-[10px] text-subtle-foreground">{hint}</p>
       ) : null}
     </div>
   );
@@ -128,8 +128,8 @@ export function ChipGroup<T extends string>({
                 "cursor-pointer rounded-full border px-4 py-2 text-[13px] transition-all",
                 "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-crimson",
                 checked
-                  ? "border-crimson/50 bg-crimson/15 text-bone"
-                  : "border-line text-bone-dim hover:border-[color:var(--line-strong)] hover:text-bone",
+                  ? "border-primary/50 bg-primary/15 text-foreground"
+                  : "border-line text-muted-foreground hover:border-[color:var(--line-strong)] hover:text-foreground",
               )}
             >
               <input

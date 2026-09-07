@@ -37,7 +37,7 @@ export function AuthGuard({
   if (loading || !user) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-bone-faint" />
+        <Loader2 className="size-5 animate-spin text-subtle-foreground" />
       </div>
     );
   }
@@ -50,10 +50,10 @@ export function AuthGuard({
         <ShieldAlert className="size-9 text-refuse" />
 
         <div>
-          <h1 className="display text-[1.75rem] text-bone">
+          <h1 className="display text-[1.75rem] text-foreground">
             {needsSuperAdmin ? "Super admin only" : "Not your gate"}
           </h1>
-          <p className="mx-auto mt-2.5 max-w-[22rem] text-sm leading-relaxed text-bone-dim">
+          <p className="mx-auto mt-2.5 max-w-[22rem] text-sm leading-relaxed text-muted-foreground">
             This area needs{" "}
             {allowedRoles.map((r) => ROLE_LABELS[r].toLowerCase()).join(" or ")}
             {" "}access.
@@ -70,19 +70,19 @@ export function AuthGuard({
          */}
         <div className="stub w-full max-w-[22rem] px-5 py-4 text-left">
           <FieldLabel>Signed in as</FieldLabel>
-          <div className="mt-1.5 truncate font-mono text-[12px] text-bone">
+          <div className="mt-1.5 truncate font-mono text-[12px] text-foreground">
             {profile.email}
           </div>
 
           <div className="mt-3.5">
             <FieldLabel>Your role</FieldLabel>
-            <div className="mt-1.5 font-mono text-[13px] text-gold">
+            <div className="mt-1.5 font-mono text-[13px] text-primary">
               {profile.role}
             </div>
           </div>
         </div>
 
-        <p className="mx-auto max-w-[22rem] text-xs leading-relaxed text-bone-faint">
+        <p className="mx-auto max-w-[22rem] text-xs leading-relaxed text-subtle-foreground">
           {needsSuperAdmin
             ? "Super admin is never granted from inside the app. Set role to “superadmin” on your own document in Firestore › users, then reload."
             : "Ask a super admin to change your role from the admin panel."}

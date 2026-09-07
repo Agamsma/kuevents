@@ -92,11 +92,11 @@ export function NextPass() {
           <div className="min-w-0 flex-1 px-5 py-5">
             <FieldLabel>Your next pass</FieldLabel>
 
-            <h2 className="display mt-2 truncate text-[1.35rem] leading-tight text-bone">
+            <h2 className="display mt-2 truncate text-[1.35rem] leading-tight text-foreground">
               {event.title}
             </h2>
 
-            <div className="mt-2 font-mono text-[11px] text-bone-dim">
+            <div className="mt-2 font-mono text-[11px] text-muted-foreground">
               {formatRelative(event.starts_at)} · {formatTime(event.starts_at)} ·{" "}
               {event.venue}
             </div>
@@ -106,11 +106,11 @@ export function NextPass() {
           <div className="my-4 w-px bg-[linear-gradient(to_bottom,var(--line-strong)_0_6px,transparent_6px_12px)] bg-[length:1px_12px]" />
 
           <div className="flex w-[7rem] shrink-0 flex-col items-center justify-center gap-1.5 px-3">
-            <QrCode className="size-5 text-crimson transition-transform group-hover:scale-110" />
-            <span className="font-mono text-[12px] tracking-[0.12em] text-bone tabular">
+            <QrCode className="size-5 text-primary transition-transform group-hover:scale-110" />
+            <span className="font-mono text-[12px] tracking-[0.12em] text-foreground tabular">
               {shortCode(ticket.id)}
             </span>
-            <span className="inline-flex items-center gap-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint">
+            <span className="inline-flex items-center gap-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
               Show
               <ArrowRight className="size-2.5 transition-transform group-hover:translate-x-0.5" />
             </span>

@@ -31,10 +31,10 @@ interface AdminUser {
 const ASSIGNABLE: UserRole[] = ["student", "scanner", "organizer"];
 
 const ROLE_STYLE: Record<UserRole, string> = {
-  student: "border-line text-bone-dim",
+  student: "border-line text-muted-foreground",
   scanner: "border-admit/30 bg-admit/[0.08] text-admit",
-  organizer: "border-crimson/35 bg-crimson/[0.1] text-crimson",
-  superadmin: "border-gold/35 bg-gold/[0.1] text-gold",
+  organizer: "border-primary/35 bg-primary/[0.1] text-primary",
+  superadmin: "border-primary/35 bg-primary/[0.1] text-primary",
 };
 
 /**
@@ -185,7 +185,7 @@ export function PeoplePanel({
 
   return (
     <>
-      <p className="mb-7 max-w-lg text-[14px] leading-relaxed text-bone-dim">
+      <p className="mb-7 max-w-lg text-[14px] leading-relaxed text-muted-foreground">
         Promote a student to organizer and they can review proposals, publish
         events and run the gate. Demote them and it stops on their next request.
       </p>
@@ -195,32 +195,32 @@ export function PeoplePanel({
           <div className="flex items-start gap-3.5">
             <AlertTriangle className="mt-0.5 size-5 shrink-0 text-refuse" />
             <div className="min-w-0">
-              <h2 className="text-[15px] font-medium text-bone">
+              <h2 className="text-[15px] font-medium text-foreground">
                 {fatal.config
                   ? "The server cannot reach Firebase"
                   : "Could not load people"}
               </h2>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-bone-dim">
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
                 {fatal.message}
               </p>
 
               {fatal.config ? (
-                <div className="mt-4 rounded-lg border border-line bg-white/[0.02] p-3.5">
+                <div className="mt-4 rounded-lg border border-line bg-accent p-3.5">
                   <FieldLabel>How to fix it</FieldLabel>
-                  <ol className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-bone-dim">
+                  <ol className="mt-2 space-y-1.5 text-[13px] leading-relaxed text-muted-foreground">
                     <li>
                       1. Firebase console › Project settings › Service accounts ›
                       Generate new private key
                     </li>
                     <li>
                       2. Put the JSON on one line as{" "}
-                      <span className="font-mono text-[11px] text-bone">
+                      <span className="font-mono text-[11px] text-foreground">
                         FIREBASE_SERVICE_ACCOUNT_KEY
                       </span>
                     </li>
                     <li>
                       3. Locally that means{" "}
-                      <span className="font-mono text-[11px] text-bone">
+                      <span className="font-mono text-[11px] text-foreground">
                         .env.local
                       </span>
                       ; on Vercel, Project Settings › Environment Variables, then
@@ -251,7 +251,7 @@ export function PeoplePanel({
         {(["student", "scanner", "organizer", "superadmin"] as UserRole[]).map((role) => (
           <Stub key={role} className="px-4 py-4">
             <FieldLabel>{ROLE_LABELS[role]}</FieldLabel>
-            <div className="display mt-1.5 text-[1.75rem] leading-none text-bone tabular">
+            <div className="display mt-1.5 text-[1.75rem] leading-none text-foreground tabular">
               {counts[role] ?? 0}
             </div>
           </Stub>
@@ -259,14 +259,14 @@ export function PeoplePanel({
       </div>
 
       <div className="relative mt-7">
-        <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-bone-faint" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-subtle-foreground" />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search by name or @${ALLOWED_EMAIL_DOMAIN}`}
           aria-label="Search people"
-          className="w-full rounded-full border border-line bg-white/[0.03] py-3 pl-11 pr-4 text-[15px] text-bone placeholder:text-bone-faint focus:border-crimson focus:outline-none"
+          className="w-full rounded-full border border-line bg-accent py-3 pl-11 pr-4 text-[15px] text-foreground placeholder:text-subtle-foreground focus:border-primary focus:outline-none"
         />
       </div>
 
@@ -275,8 +275,8 @@ export function PeoplePanel({
           <div className="stub h-72 animate-pulse" />
         ) : visible.length === 0 ? (
           <Stub className="px-6 py-16 text-center">
-            <Users2 className="mx-auto size-8 text-bone-faint" />
-            <p className="mt-4 text-sm text-bone-dim">
+            <Users2 className="mx-auto size-8 text-subtle-foreground" />
+            <p className="mt-4 text-sm text-muted-foreground">
               {search ? (
                 <>Nobody matches &ldquo;{search}&rdquo;.</>
               ) : (
@@ -308,18 +308,18 @@ export function PeoplePanel({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="border-b border-line transition-colors hover:bg-white/[0.02]"
+                        className="border-b border-line transition-colors hover:bg-accent"
                       >
                         <TableCell className="max-w-[14rem]">
-                          <div className="truncate font-medium text-bone">
+                          <div className="truncate font-medium text-foreground">
                             {user.full_name}
                             {isSelf ? (
-                              <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint">
+                              <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
                                 you
                               </span>
                             ) : null}
                           </div>
-                          <div className="truncate font-mono text-[10px] text-bone-faint">
+                          <div className="truncate font-mono text-[10px] text-subtle-foreground">
                             {user.email}
                           </div>
                         </TableCell>
@@ -337,11 +337,11 @@ export function PeoplePanel({
 
                         <TableCell className="text-right">
                           {locked ? (
-                            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-bone-faint">
+                            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-subtle-foreground">
                               {isSelf ? "Not yourself" : "Locked"}
                             </span>
                           ) : savingUid === user.uid ? (
-                            <Loader2 className="ml-auto size-4 animate-spin text-bone-faint" />
+                            <Loader2 className="ml-auto size-4 animate-spin text-subtle-foreground" />
                           ) : (
                             <div className="inline-flex gap-1 rounded-full border border-line p-1">
                               {ASSIGNABLE.map((role) => (
@@ -352,8 +352,8 @@ export function PeoplePanel({
                                   aria-pressed={user.role === role}
                                   className={`rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.1em] transition-colors ${
                                     user.role === role
-                                      ? "bg-crimson/20 text-bone"
-                                      : "text-bone-faint hover:bg-white/[0.05] hover:text-bone-dim"
+                                      ? "bg-primary/20 text-foreground"
+                                      : "text-subtle-foreground hover:bg-accent hover:text-muted-foreground"
                                   }`}
                                 >
                                   {role === "student"
@@ -376,7 +376,7 @@ export function PeoplePanel({
         )}
       </div>
 
-      <p className="mt-6 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-bone-faint">
+      <p className="mt-6 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-subtle-foreground">
         Super admin is granted out of band, never from this panel
       </p>
     </>

@@ -1,6 +1,7 @@
 "use client";
 
 import { SiteHeader } from "@/components/site-header";
+import { AmbientPaper } from "@/components/motion/ambient";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,6 +33,7 @@ export function AppShell({
       data-theme={theme}
       className={cn(theme === "paper" && "min-h-dvh bg-paper text-ink")}
     >
+      {theme === "paper" ? <AmbientPaper /> : null}
       <SiteHeader />
       <main
         id="main"

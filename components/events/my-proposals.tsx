@@ -33,7 +33,7 @@ const VIEW: Record<
 > = {
   pending: {
     label: "Waiting on a decision",
-    tone: "text-gold border-gold/30 bg-gold/[0.08]",
+    tone: "text-primary border-primary/30 bg-primary/[0.08]",
     icon: Clock,
     blurb: "An organizer will review this shortly.",
   },
@@ -51,19 +51,19 @@ const VIEW: Record<
   },
   live: {
     label: "Happening now",
-    tone: "text-gold border-gold/30 bg-gold/[0.08]",
+    tone: "text-primary border-primary/30 bg-primary/[0.08]",
     icon: CheckCircle2,
     blurb: "Doors are open.",
   },
   draft: {
     label: "Draft",
-    tone: "border-line text-bone-dim",
+    tone: "border-line text-muted-foreground",
     icon: Clock,
     blurb: "Not visible to anyone yet.",
   },
   ended: {
     label: "Finished",
-    tone: "border-line text-bone-dim",
+    tone: "border-line text-muted-foreground",
     icon: CheckCircle2,
     blurb: "This one is done.",
   },
@@ -111,11 +111,11 @@ export function MyProposals() {
   }, [proposals]);
 
   return (
-    <AppShell>
+    <AppShell theme="paper">
       <div className="flex items-end justify-between gap-4">
         <div>
           <FieldLabel>Your proposals</FieldLabel>
-          <h1 className="display mt-2.5 text-[clamp(2rem,6vw,2.75rem)] text-bone">
+          <h1 className="display mt-2.5 text-[clamp(2rem,6vw,2.75rem)] text-foreground">
             What you&rsquo;ve asked for
           </h1>
         </div>
@@ -192,19 +192,19 @@ function ProposalRow({ proposal, index }: { proposal: EventDoc; index: number })
         <div className="px-5 pb-5 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="display text-[1.25rem] leading-tight text-bone">
+              <h2 className="display text-[1.25rem] leading-tight text-foreground">
                 {proposal.title}
               </h2>
-              <div className="mt-2 font-mono text-[11px] text-bone-dim">
+              <div className="mt-2 font-mono text-[11px] text-muted-foreground">
                 {formatDate(proposal.starts_at)} · {formatTime(proposal.starts_at)}
                 {" · "}
                 {proposal.venue}
               </div>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint">
+                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
                   {TRACK_LABELS[proposal.track] ?? proposal.track}
                 </span>
-                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint">
+                <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
                   {proposal.category}
                 </span>
               </div>
@@ -218,7 +218,7 @@ function ProposalRow({ proposal, index }: { proposal: EventDoc; index: number })
             </span>
           </div>
 
-          <p className="mt-4 text-[13px] leading-relaxed text-bone-dim">
+          <p className="mt-4 text-[13px] leading-relaxed text-muted-foreground">
             {view.blurb}
           </p>
 
@@ -227,11 +227,11 @@ function ProposalRow({ proposal, index }: { proposal: EventDoc; index: number })
           {wasRejected && proposal.review_note ? (
             <div className="mt-4 rounded-xl border border-refuse/25 bg-refuse/[0.05] p-4">
               <FieldLabel>What the organizer said</FieldLabel>
-              <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-bone">
+              <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-foreground">
                 {proposal.review_note}
               </p>
               {proposal.reviewed_at ? (
-                <p className="mt-2.5 font-mono text-[10px] text-bone-faint">
+                <p className="mt-2.5 font-mono text-[10px] text-subtle-foreground">
                   {formatDateTime(proposal.reviewed_at)}
                 </p>
               ) : null}
@@ -239,7 +239,7 @@ function ProposalRow({ proposal, index }: { proposal: EventDoc; index: number })
           ) : null}
 
           {wasRejected && !proposal.review_note ? (
-            <p className="mt-4 text-[13px] italic leading-relaxed text-bone-faint">
+            <p className="mt-4 text-[13px] italic leading-relaxed text-subtle-foreground">
               No reason was given. Ask the organising team if you want to know
               more.
             </p>
@@ -277,10 +277,10 @@ function EmptyState() {
   return (
     <Stub notched className="px-6 py-16 text-center">
       <div className="mx-auto max-w-sm">
-        <div className="display text-[1.5rem] text-bone">
+        <div className="display text-[1.5rem] text-foreground">
           You haven&rsquo;t proposed anything yet
         </div>
-        <p className="mt-2.5 text-sm leading-relaxed text-bone-dim">
+        <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
           Anyone on campus can put an event forward. An organizer reviews it,
           and if it is approved it goes straight onto the directory.
         </p>

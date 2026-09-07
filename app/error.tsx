@@ -40,10 +40,10 @@ export default function RouteError({
             <TriangleAlert className="size-5 text-refuse" />
           </div>
 
-          <h1 className="display mt-5 text-[1.75rem] leading-tight text-bone">
+          <h1 className="display mt-5 text-[1.75rem] leading-tight text-foreground">
             That page hit a problem
           </h1>
-          <p className="mt-2.5 text-[15px] leading-relaxed text-bone-dim">
+          <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">
             Nothing you did caused this and nothing was lost. Trying again
             usually clears it.
           </p>
@@ -51,7 +51,7 @@ export default function RouteError({
           {error.digest ? (
             <div className="mt-6">
               <FieldLabel>Reference</FieldLabel>
-              <div className="mt-1.5 font-mono text-[11px] text-bone-faint">
+              <div className="mt-1.5 font-mono text-[11px] text-subtle-foreground">
                 {error.digest}
               </div>
             </div>
@@ -73,17 +73,19 @@ export default function RouteError({
            */}
           {error.message ? (
             <details className="group mt-6">
-              <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.14em] text-bone-faint transition-colors hover:text-bone-dim">
+              <summary className="cursor-pointer list-none font-mono text-[10px] uppercase tracking-[0.14em] text-subtle-foreground transition-colors hover:text-muted-foreground">
                 Technical details
               </summary>
 
-              <div className="mt-2.5 max-h-52 overflow-auto rounded-md bg-black/25 px-3 py-2.5">
-                <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-bone-dim">
+              {/* `bg-muted`, not a black panel: this boundary renders on both
+                  grounds, and a dark well on a paper page reads as a hole. */}
+              <div className="mt-2.5 max-h-52 overflow-auto rounded-md bg-muted px-3 py-2.5">
+                <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-muted-foreground">
                   {error.message}
                 </pre>
 
                 {error.stack ? (
-                  <pre className="mt-2 whitespace-pre-wrap break-words border-t border-[color:var(--line)] pt-2 font-mono text-[10px] leading-relaxed text-bone-faint">
+                  <pre className="mt-2 whitespace-pre-wrap break-words border-t border-[color:var(--line)] pt-2 font-mono text-[10px] leading-relaxed text-subtle-foreground">
                     {error.stack.split("\n").slice(1, 7).join("\n")}
                   </pre>
                 ) : null}

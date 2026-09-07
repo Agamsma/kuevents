@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from "react";
 
 import { SiteHeader } from "@/components/site-header";
+import { AmbientPaper } from "@/components/motion/ambient";
 import { FieldLabel } from "@/components/ui/stub";
 import { Tabs, TabsContent, TabsList, TabsPill, TabsTrigger } from "@/components/ui/tabs";
 
@@ -74,7 +75,8 @@ export function DashboardShell({
   const tab = controlledTab;
 
   return (
-    <>
+    <div data-theme="paper" className="min-h-dvh bg-paper text-ink">
+      <AmbientPaper />
       <SiteHeader />
 
       <main
@@ -85,11 +87,11 @@ export function DashboardShell({
         <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <FieldLabel>{eyebrow}</FieldLabel>
-            <h1 className="display mt-2.5 text-[clamp(2rem,6vw,2.75rem)] text-bone">
+            <h1 className="display mt-2.5 text-[clamp(2rem,6vw,2.75rem)] text-foreground">
               {title}
             </h1>
             {description ? (
-              <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-bone-dim">
+              <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground">
                 {description}
               </p>
             ) : null}
@@ -105,7 +107,7 @@ export function DashboardShell({
                 {tab === entry.value ? <TabsPill /> : null}
                 {entry.label}
                 {entry.badge ? (
-                  <span className="ml-1.5 rounded-full bg-gold/20 px-1.5 py-0.5 text-gold tabular">
+                  <span className="ml-1.5 rounded-full bg-primary/20 px-1.5 py-0.5 text-primary tabular">
                     {entry.badge}
                   </span>
                 ) : null}
@@ -120,7 +122,7 @@ export function DashboardShell({
           ))}
         </Tabs>
       </main>
-    </>
+    </div>
   );
 }
 
@@ -140,10 +142,10 @@ export function StatCard({
     tone === "admit"
       ? "text-admit"
       : tone === "gold"
-        ? "text-gold"
+        ? "text-primary"
         : tone === "refuse"
           ? "text-refuse"
-          : "text-bone";
+          : "text-foreground";
 
   return (
     <div className="stub px-5 py-5">
@@ -152,7 +154,7 @@ export function StatCard({
         {value}
       </div>
       {hint ? (
-        <div className="mt-1.5 font-mono text-[10px] text-bone-faint">{hint}</div>
+        <div className="mt-1.5 font-mono text-[10px] text-subtle-foreground">{hint}</div>
       ) : null}
     </div>
   );

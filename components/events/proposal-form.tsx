@@ -246,21 +246,22 @@ export function ProposalForm() {
     <main
       id="main"
       tabIndex={-1}
-      className="mx-auto w-full max-w-2xl px-5 pb-24 pt-28 outline-none sm:px-6"
+      data-theme="paper"
+      className="mx-auto min-h-dvh w-full max-w-2xl bg-paper px-5 pb-24 pt-28 text-ink outline-none sm:px-6"
     >
       <Link
         href="/"
-        className="mb-7 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-bone-faint transition-colors hover:text-bone"
+        className="mb-7 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-subtle-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-3" />
         Back to events
       </Link>
 
       <FieldLabel>Propose an event</FieldLabel>
-      <h1 className="display mt-3 text-[clamp(2rem,6vw,2.75rem)] text-bone">
+      <h1 className="display mt-3 text-[clamp(2rem,6vw,2.75rem)] text-foreground">
         Tell us what you want to run
       </h1>
-      <p className="mt-3 max-w-md text-[15px] leading-relaxed text-bone-dim">
+      <p className="mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">
         An organizer reviews every proposal. If it is approved it goes straight
         onto the campus directory and students can reserve passes.
       </p>
@@ -432,17 +433,17 @@ function StepRail({ current }: { current: number }) {
       {STEPS.map((s, i) => (
         <li key={s.id} className="flex flex-1 items-center gap-2">
           <div className="flex-1">
-            <div className="h-[3px] overflow-hidden rounded-full bg-white/[0.07]">
+            <div className="h-[3px] overflow-hidden rounded-full bg-accent">
               <motion.div
                 initial={false}
                 animate={{ width: i <= current ? "100%" : "0%" }}
                 transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                className="h-full rounded-full bg-crimson"
+                className="h-full rounded-full bg-primary"
               />
             </div>
             <div
               className={`mt-2 font-mono text-[9px] uppercase tracking-[0.14em] transition-colors ${
-                i <= current ? "text-bone-dim" : "text-bone-faint"
+                i <= current ? "text-muted-foreground" : "text-subtle-foreground"
               }`}
             >
               {s.label}
@@ -470,7 +471,7 @@ function CoverStep({
   return (
     <div>
       <FieldLabel>Cover image</FieldLabel>
-      <p className="mt-2 text-[13px] leading-relaxed text-bone-dim">
+      <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
         Optional, but events with a cover get noticed. Landscape works best.
       </p>
 
@@ -490,7 +491,7 @@ function CoverStep({
           <img src={preview} alt="Cover preview" className="size-full object-cover" />
 
           <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/80 to-transparent p-3">
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-bone">
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-foreground">
               Preview
             </span>
             <div className="flex gap-2">
@@ -520,16 +521,16 @@ function CoverStep({
           }}
           className={`mt-5 flex aspect-[16/9] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-dashed transition-colors ${
             dragging
-              ? "border-crimson bg-crimson/[0.06]"
-              : "border-[color:var(--line-strong)] hover:border-crimson/50 hover:bg-white/[0.03]"
+              ? "border-primary bg-primary/[0.06]"
+              : "border-[color:var(--line-strong)] hover:border-primary/50 hover:bg-accent"
           }`}
         >
-          <ImagePlus className="size-7 text-bone-faint" />
+          <ImagePlus className="size-7 text-subtle-foreground" />
           <div className="text-center">
-            <div className="text-sm font-medium text-bone">
+            <div className="text-sm font-medium text-foreground">
               Drop an image, or choose a file
             </div>
-            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-bone-faint">
+            <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-subtle-foreground">
               JPG · PNG · WebP · up to 5 MB
             </div>
           </div>
@@ -564,7 +565,7 @@ function ReviewStep({
   return (
     <div>
       <FieldLabel>Check it over</FieldLabel>
-      <p className="mt-2 text-[13px] leading-relaxed text-bone-dim">
+      <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
         This is what the organizer will see. Tap any line to change it.
       </p>
 
@@ -574,24 +575,24 @@ function ReviewStep({
             key={label}
             type="button"
             onClick={() => onEdit(targetStep)}
-            className="flex w-full items-baseline justify-between gap-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
+            className="flex w-full items-baseline justify-between gap-4 py-3 text-left transition-colors hover:bg-accent"
           >
             <dt className="field-label shrink-0">{label}</dt>
-            <dd className="min-w-0 truncate text-[14px] text-bone">{value}</dd>
+            <dd className="min-w-0 truncate text-[14px] text-foreground">{value}</dd>
           </button>
         ))}
       </dl>
 
       {draft.description ? (
-        <div className="mt-5 rounded-xl border border-line bg-white/[0.02] p-4">
+        <div className="mt-5 rounded-xl border border-line bg-accent p-4">
           <FieldLabel>Description</FieldLabel>
-          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-bone-dim">
+          <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-muted-foreground">
             {draft.description}
           </p>
         </div>
       ) : null}
 
-      <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.12em] text-bone-faint">
+      <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.12em] text-subtle-foreground">
         Proposed by {proposer}
       </p>
     </div>
@@ -618,10 +619,10 @@ function SuccessPanel({ onAnother }: { onAnother: () => void }) {
               <PartyPopper className="size-7 text-admit" />
             </motion.div>
 
-            <h1 className="display mt-7 text-[2rem] text-bone">
+            <h1 className="display mt-7 text-[2rem] text-foreground">
               Sent for review
             </h1>
-            <p className="mx-auto mt-3 max-w-xs text-[15px] leading-relaxed text-bone-dim">
+            <p className="mx-auto mt-3 max-w-xs text-[15px] leading-relaxed text-muted-foreground">
               An organizer will look at it shortly. You can follow the decision
               — and read any feedback — under your proposals.
             </p>
