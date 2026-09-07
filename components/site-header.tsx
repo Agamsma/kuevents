@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { MarkGlyph } from "@/components/brand/mark";
 import { cn } from "@/lib/utils";
 
 /**
@@ -43,8 +44,23 @@ export function SiteHeader() {
     <header className="fixed inset-x-0 top-0 z-40">
       <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
         <div className="glass flex h-14 items-center gap-3 rounded-full px-4 sm:px-5">
-          <Link href="/" className="display shrink-0 text-[18px] text-foreground">
-            KU&nbsp;Events
+          {/*
+           * The crest leads, the wordmark follows.
+           *
+           * Only the flame is used here, not the full lockup — the lockup's own
+           * "KARNAVATI UNIVERSITY" type is illegible at this size and would sit
+           * next to a second wordmark saying nearly the same thing. The flame
+           * is a silhouette and reads fine small.
+           */}
+          <Link
+            href="/"
+            aria-label="KU Events — home"
+            className="flex shrink-0 items-center gap-2.5"
+          >
+            <MarkGlyph size={28} />
+            <span className="display text-[18px] text-foreground">
+              KU&nbsp;Events
+            </span>
           </Link>
 
           <nav className="ml-4 hidden flex-1 items-center gap-0.5 md:flex">

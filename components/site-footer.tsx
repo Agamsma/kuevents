@@ -94,7 +94,13 @@ export function SiteFooter() {
              * leave the page with two things claiming to be the identity; down
              * here it reads as what it is — a credential on the masthead.
              */}
-            <NaacMark className="h-7 w-auto opacity-80" />
+            {/*
+             * Bigger and at full opacity. At h-7/80% it was a smudge — and on
+             * paper its white plate disappears into the ground, so the size is
+             * the only thing left doing the work. An accreditation mark nobody
+             * can read is not a credential, it is decoration.
+             */}
+            <NaacMark className="h-10 w-auto ring-1 ring-[color:var(--line)]" />
 
             <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
               kuevents.in

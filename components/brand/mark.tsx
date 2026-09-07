@@ -19,6 +19,64 @@ import Image from "next/image";
 const LOCKUP_W = 200;
 const LOCKUP_H = 241;
 
+/**
+ * Where the flame ends and the wordmark begins, in the source artwork.
+ *
+ * The lockup is the mark stacked over "KARNAVATI UNIVERSITY". At navbar size
+ * that type is what turns to mud — the flame itself is a simple silhouette and
+ * survives being small perfectly well. Cropping to this fraction is what lets
+ * the emblem sit in the header at all.
+ */
+const FLAME_H = 166;
+
+/**
+ * The flame alone, for the header.
+ *
+ * Cropped with `overflow-hidden` rather than a second exported asset, so there
+ * is still exactly one piece of KU artwork in the repo to swap when the real
+ * vector arrives.
+ *
+ * `alt=""` on purpose: the wordmark beside it already says "KU Events", and a
+ * screen reader announcing the university twice in one link is noise.
+ */
+export function MarkGlyph({
+  size = 30,
+  className,
+}: {
+  /** Rendered height of the flame, in pixels. */
+  size?: number;
+  className?: string;
+}) {
+  const scale = size / FLAME_H;
+
+  return (
+    <span
+      aria-hidden
+      className={className}
+      style={{
+        display: "block",
+        overflow: "hidden",
+        width: Math.round(LOCKUP_W * scale),
+        height: size,
+        flexShrink: 0,
+      }}
+    >
+      <Image
+        src="/ku-lockup.png"
+        alt=""
+        width={LOCKUP_W}
+        height={LOCKUP_H}
+        priority
+        style={{
+          width: Math.round(LOCKUP_W * scale),
+          height: Math.round(LOCKUP_H * scale),
+          maxWidth: "none",
+        }}
+      />
+    </span>
+  );
+}
+
 /** The vertical lockup: flame, peacock, wordmark. */
 export function Mark({
   size = 96,
