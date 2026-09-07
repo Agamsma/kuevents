@@ -111,6 +111,70 @@
   --ring: var(--crimson);
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   Paper — the student surfaces
+   ───────────────────────────────────────────────────────────────────────────
+   Opt-in, not the default. Every existing screen is written against the
+   obsidian scale above, so flipping :root would break all of them at once.
+   Phase 2 moves each student route onto this scale as it is rebuilt, and the
+   gate console simply never opts in — a marshal works at night, on battery,
+   and a white screen is glare in their eyes.
+
+   The reason this scale exists: KU Red #C02722 measures 5.54:1 here and passes
+   AA unmodified. On the obsidian ground it measures 3.40:1 and has to be lifted
+   to #DA5045 — a colour that holds KU's hue but is not KU's red. On paper the
+   interface can use the university's actual colour.
+
+   There is no gold. KU Yellow is 1.34:1 on this ground; darkening it until it
+   passes yields bronze. Yellow lives inside the emblem artwork, at the core of
+   the flame, and nowhere else.
+
+   `lib/theme.test.mts` reads these values straight out of this file and fails
+   the build if any of them drops below AA on any of the three surfaces.
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-theme="paper"] {
+  --paper: #fbf7f2; /* warm, never pure white */
+  --paper-raised: #ffffff; /* cards lifting off the ground */
+  --paper-sunk: #f3ede6; /* wells, inputs, the inside of a punch */
+
+  --ink: #1a1416; /* 17.04:1 */
+  --ink-dim: #5c5150; /* 7.16:1 */
+  --ink-soft: #6e625f; /* 5.51:1 */
+  --ink-faint: #8a7e7b; /* 3.68:1 — NON-TEXT ONLY: rules, disabled marks */
+
+  --ku-red: #c02722; /* 5.54:1 — official, unmodified */
+  --ku-orange: #f78543; /* 2.35:1 — filled bands only, never text */
+
+  /* Paper has no glow. Elevation is a contact shadow plus an ambient one. */
+  --shadow-contact: 0 1px 2px #1a141612;
+  --shadow-ambient: 0 12px 32px -8px #1a141614;
+
+  --line: #1a141614;
+  --line-strong: #1a141626;
+
+  /* A punch reveals the ground behind the card, not the card. */
+  --notch: var(--paper);
+
+  /* shadcn-compatible aliases re-pointed at paper */
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper-raised);
+  --card-foreground: var(--ink);
+  --popover: var(--paper-raised);
+  --popover-foreground: var(--ink);
+  --primary: var(--ku-red);
+  --primary-foreground: #ffffff;
+  --secondary: var(--paper-sunk);
+  --secondary-foreground: var(--ink);
+  --muted: var(--paper-sunk);
+  --muted-foreground: var(--ink-dim);
+  --accent: var(--paper-sunk);
+  --accent-foreground: var(--ink);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--ku-red);
+}
+
 @theme inline {
   --color-obsidian: var(--obsidian);
   --color-ember: var(--ember);
@@ -130,6 +194,17 @@
   --color-refuse: var(--refuse);
   --color-line: var(--line);
   --color-glass: var(--glass);
+
+  /* Paper scale — resolves only inside [data-theme="paper"] */
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-paper-sunk: var(--paper-sunk);
+  --color-ink: var(--ink);
+  --color-ink-dim: var(--ink-dim);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-ku-red: var(--ku-red);
+  --color-ku-orange: var(--ku-orange);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
