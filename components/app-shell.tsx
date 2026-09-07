@@ -13,12 +13,25 @@ import { cn } from "@/lib/utils";
 export function AppShell({
   children,
   className,
+  theme,
 }: {
   children: React.ReactNode;
   className?: string;
+  /**
+   * Opt this page onto the paper ground. Omitting it keeps the obsidian scale.
+   *
+   * Explicit rather than defaulted, because `attendee-list.tsx` — an organizer
+   * surface that stays dark until Phase 3 — uses this same shell. A default of
+   * "paper" here would put ink-coloured text on a dark ground the moment it was
+   * added, and the roster is only ever looked at during an event.
+   */
+  theme?: "paper";
 }) {
   return (
-    <>
+    <div
+      data-theme={theme}
+      className={cn(theme === "paper" && "min-h-dvh bg-paper text-ink")}
+    >
       <SiteHeader />
       <main
         id="main"
@@ -32,6 +45,6 @@ export function AppShell({
       >
         {children}
       </main>
-    </>
+    </div>
   );
 }

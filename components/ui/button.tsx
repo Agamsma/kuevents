@@ -9,16 +9,30 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        /*
+         * Every variant reads the alias layer, never the obsidian tokens
+         * directly, so one button renders correctly on both grounds. It used to
+         * hardcode `bg-ash` / `text-bone`, which put a near-black button on the
+         * paper login card — the same class of bug `.stub` had before it was
+         * pointed at `--card`.
+         */
         default:
-          "bg-crimson text-[#0d0a1f] shadow-[0_1px_0_0_#ffffff40_inset] hover:bg-crimson/90",
+          "bg-primary text-primary-foreground shadow-[0_1px_0_0_#ffffff40_inset] hover:bg-primary/90",
+        /*
+         * "The single most important action on this screen." On obsidian that
+         * is gold; on paper gold does not exist — KU Yellow is 1.34:1 there and
+         * was dropped from the palette — so it falls back to the brand red,
+         * which carries the same meaning on that ground.
+         */
         gold:
-          "bg-gold text-[#211502] shadow-[0_1px_0_0_#ffffff50_inset] hover:bg-gold/90",
-        destructive: "bg-refuse text-[#2a0508] hover:bg-refuse/90",
+          "bg-gold text-[#211502] shadow-[0_1px_0_0_#ffffff50_inset] hover:bg-gold/90 [[data-theme=paper]_&]:bg-primary [[data-theme=paper]_&]:text-primary-foreground [[data-theme=paper]_&]:hover:bg-primary/90",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline:
-          "border border-line bg-transparent hover:border-[color:var(--line-strong)] hover:bg-white/[0.04]",
-        secondary: "bg-ash text-bone hover:bg-ash-2",
-        ghost: "hover:bg-white/[0.06] text-bone-dim hover:text-bone",
-        link: "text-crimson underline-offset-4 hover:underline",
+          "border border-border bg-transparent hover:border-[color:var(--line-strong)] hover:bg-accent",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-accent",
+        ghost: "hover:bg-accent text-muted-foreground hover:text-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 text-sm has-[>svg]:px-3.5",

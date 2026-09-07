@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth-domain";
 import { Button } from "@/components/ui/button";
+import { Mark } from "@/components/brand/mark";
 import { FieldLabel, Perforation } from "@/components/ui/stub";
 import { toast } from "@/components/ui/toast";
 
@@ -87,31 +88,45 @@ export default function LoginPage() {
   const busy = submitting || loading;
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden px-5 py-10">
-      {/* Ambient crimson bloom, top-left, so the ground is not a dead flat field. */}
+    <main
+      data-theme="paper"
+      className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-paper px-5 py-10 text-ink"
+    >
+      {/*
+       * Paper does not glow, so the blurred crimson and gold orbs that lit the
+       * dark ground are gone. What replaces them is what light does to paper:
+       * a single warm wash falling from the top-left, and a barely-there tint
+       * pooling at the bottom. Flat white would read as a form; this reads as
+       * a sheet lying under a lamp.
+       */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-40 -top-40 size-[34rem] rounded-full opacity-[0.18] blur-[100px]"
-        style={{ background: "var(--crimson)" }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-52 -right-40 size-[30rem] rounded-full opacity-[0.12] blur-[110px]"
-        style={{ background: "var(--gold)" }}
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(120% 80% at 15% 0%, #ffffff 0%, transparent 55%), radial-gradient(90% 60% at 85% 100%, #f5ece2 0%, transparent 60%)",
+        }}
       />
 
       {/* The sign-in card IS a ticket stub, torn across the middle. */}
       <div className="animate-stub-in stub stub-notched relative w-full max-w-[23rem] overflow-hidden" style={{ ["--at" as string]: "62%" }}>
         <div className="px-7 pb-8 pt-9">
+          {/*
+           * The one place the university introduces itself by name and mark.
+           * A student arriving here may have followed a link with no idea whose
+           * platform this is; the crest answers that before the heading does.
+           */}
+          <Mark size={64} priority className="mb-5" />
+
           <FieldLabel>Karnavati University</FieldLabel>
 
-          <h1 className="display mt-3 text-[2.75rem] text-bone">
+          <h1 className="display mt-3 text-[2.75rem] text-ink">
             KU
             <br />
             Events
           </h1>
 
-          <p className="mt-4 max-w-[17rem] text-[15px] leading-relaxed text-bone-dim">
+          <p className="mt-4 max-w-[17rem] text-[15px] leading-relaxed text-ink-dim">
             Your pass lives on your phone. The gate reads it even with no
             signal.
           </p>
@@ -120,11 +135,17 @@ export default function LoginPage() {
           <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-4">
             <div>
               <FieldLabel>Admits</FieldLabel>
-              <div className="mt-1 font-mono text-sm text-bone">ONE, ONCE</div>
+              <div className="mt-1 font-mono text-sm text-ink">ONE, ONCE</div>
             </div>
             <div>
               <FieldLabel>Works offline</FieldLabel>
-              <div className="mt-1 font-mono text-sm text-admit">YES</div>
+              {/*
+               * `--admit` is the gate's green and is tuned for a near-black
+               * ground; on paper it is far too light to read. This is a claim
+               * on a marketing card, not a verdict at a gate, so it takes the
+               * brand colour rather than borrowing the gate's vocabulary.
+               */}
+              <div className="mt-1 font-mono text-sm text-ku-red">YES</div>
             </div>
           </div>
         </div>
@@ -143,7 +164,13 @@ export default function LoginPage() {
             {submitting ? "Signing in" : "Continue with Google"}
           </Button>
 
-          <p className="mt-4 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-bone-faint">
+          {/*
+           * `ink-soft`, not `ink-faint`: this is text, and faint measures
+           * 3.68:1 on paper — legible enough for a rule or a disabled mark and
+           * not for a sentence. `lib/theme.test.mts` asserts that distinction
+           * rather than trusting it to be remembered.
+           */}
+          <p className="mt-4 text-center font-mono text-[10px] uppercase leading-relaxed tracking-[0.14em] text-ink-soft">
             @{ALLOWED_EMAIL_DOMAIN} only
           </p>
         </div>
