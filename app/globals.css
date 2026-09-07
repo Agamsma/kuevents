@@ -347,9 +347,19 @@
 
 .stub {
   position: relative;
-  background: var(--ember);
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+}
+
+/*
+ * On paper a card is a physical object: it sits on the ground and casts a
+ * shadow. On obsidian it is a lit surface and casts nothing — a shadow on
+ * near-black is invisible, and faking one with a glow is the dark-UI habit
+ * this redesign is moving away from.
+ */
+[data-theme="paper"] .stub {
+  box-shadow: var(--shadow-contact), var(--shadow-ambient);
 }
 
 .stub-notched::before,
@@ -362,6 +372,19 @@
   border-radius: 9999px;
   background: var(--notch);
   pointer-events: none;
+}
+
+/*
+ * A punch is removed material, so on paper it needs an inner shadow at the top
+ * and a light lip at the bottom. Without it the notch reads as a drawn circle
+ * in the ground colour — which is exactly what it is on a dark UI, and exactly
+ * what it must not look like here.
+ */
+[data-theme="paper"] .stub-notched::before,
+[data-theme="paper"] .stub-notched::after {
+  box-shadow:
+    inset 0 2px 3px -1px #1a14161f,
+    inset 0 -1px 0 #ffffffcc;
 }
 
 .stub-notched::before {
@@ -384,6 +407,29 @@
   );
   background-size: 16px 1px;
   background-repeat: repeat-x;
+}
+
+/*
+ * The deckled edge. A torn paper edge is irregular, so the dashes vary in width
+ * rather than marching at a constant pitch, and the line gains a faint
+ * highlight beneath it — the lip of the tear catching light. Still one rule and
+ * no image.
+ */
+[data-theme="paper"] .tear {
+  height: 2px;
+  background-image:
+    linear-gradient(
+      to right,
+      var(--line-strong) 0 7px,
+      transparent 7px 13px,
+      var(--line-strong) 13px 18px,
+      transparent 18px 27px
+    ),
+    linear-gradient(to bottom, transparent 0 1px, #ffffffb3 1px 2px);
+  background-size:
+    27px 1px,
+    100% 2px;
+  background-repeat: repeat-x, no-repeat;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
