@@ -153,13 +153,13 @@ export function EventDirectory() {
           <div className="flex flex-col gap-6 border-b border-line pb-7 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <FieldLabel>The directory</FieldLabel>
-              <h2 className="display mt-3 text-[clamp(2rem,5vw,3rem)] text-bone">
+              <h2 className="display mt-3 text-[clamp(2rem,5vw,3rem)] text-ink">
                 What&rsquo;s coming up
               </h2>
             </div>
 
             {user ? (
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-bone-faint tabular">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-soft tabular">
                 {events.length} open {events.length === 1 ? "event" : "events"}
               </span>
             ) : null}
@@ -224,10 +224,10 @@ export function EventDirectory() {
           <Reveal>
             <div className="glass mt-10 flex flex-col items-center gap-4 rounded-2xl px-6 py-7 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
-                <div className="display text-[1.25rem] text-bone">
+                <div className="display text-[1.25rem] text-ink">
                   Want a seat at one of these?
                 </div>
-                <p className="mt-1.5 text-sm leading-relaxed text-bone-dim">
+                <p className="mt-1.5 text-sm leading-relaxed text-ink-dim">
                   Sign in with your KU account to reserve a pass.
                 </p>
               </div>
@@ -272,10 +272,10 @@ function EmptyTrack({ track }: { track: TabValue }) {
   return (
     <Stub notched className="px-6 py-16 text-center">
       <div className="mx-auto max-w-sm">
-        <div className="display text-[1.5rem] text-bone">
+        <div className="display text-[1.5rem] text-ink">
           {track === "ALL" ? "Nothing published yet" : `Nothing from ${TRACK_LABELS[track as EventTrack]} yet`}
         </div>
-        <p className="mt-2.5 text-sm leading-relaxed text-bone-dim">
+        <p className="mt-2.5 text-sm leading-relaxed text-ink-dim">
           Got something in mind? Anyone on campus can propose an event — an
           organizer reviews it and it appears here.
         </p>

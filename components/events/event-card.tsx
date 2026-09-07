@@ -74,8 +74,23 @@ export function EventCard({
       }}
       className={cn(CARD_WIDTH_CLASS, className)}
     >
-      <Link href={`/events/${event.id}`} className="group block h-full">
-        <Stub className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-[color:var(--line-strong)] group-hover:shadow-[0_24px_50px_-24px_#000000e6]">
+      <Link
+        href={`/events/${event.id}`}
+        className="group block h-full transition-transform duration-150 active:scale-[0.985]"
+      >
+        {/*
+         * `data-theme="obsidian"` because the card is a poster, not a panel.
+         *
+         * The directory now sits on paper, but a poster is artwork with type
+         * set over it — a printed bill pinned to a white wall is still dark.
+         * Pinning the scale here keeps `.spotlight`, the chips, the torn foot
+         * and the seat states exactly as they were tuned, instead of forcing a
+         * scrim designed for a dark ground to also work as ink on white.
+         */}
+        <Stub
+          data-theme="obsidian"
+          className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-[color:var(--line-strong)] group-hover:shadow-[0_24px_50px_-24px_#00000059]"
+        >
           {/* The poster. `.spotlight` is what keeps the type on it readable
               over an arbitrary photo — see the derivation in globals.css. */}
           <div className="poster spotlight relative shrink-0 bg-ash">
