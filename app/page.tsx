@@ -36,13 +36,15 @@ export default async function LandingPage() {
   const featured = await fetchFeaturedEvents();
 
   return (
-    <>
+    // The front door is paper. The gate is the only surface that stays dark,
+    // and it opts out by simply never carrying this attribute.
+    <div data-theme="paper" className="min-h-dvh bg-paper text-ink">
       <SiteHeader />
       <main id="main" tabIndex={-1} className="outline-none">
         <Hero featured={featured} />
         <EventDirectory />
       </main>
       <SiteFooter />
-    </>
+    </div>
   );
 }

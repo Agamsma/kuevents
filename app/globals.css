@@ -38,7 +38,19 @@
  * fatiguing combination this interface is specifically trying not to be.
  */
 
-:root {
+/*
+ * The obsidian scale is both the document default and an explicitly requestable
+ * scope. One selector list rather than two blocks, so the values cannot drift.
+ *
+ * `[data-theme="obsidian"]` exists because paper cascades: anything inside a
+ * paper subtree inherits ink-on-white, and some objects are not part of the
+ * page's surface at all. A poster is the case that forced it — it is artwork
+ * with type set over it, its own lit world, the way a printed bill pinned to a
+ * white wall is still a dark poster. Nesting this attribute inside a paper
+ * subtree restores the dark vocabulary for that object and nothing else.
+ */
+:root,
+[data-theme="obsidian"] {
   --radius: 1rem;
 
   /* Ground and surfaces — warm, not neutral */

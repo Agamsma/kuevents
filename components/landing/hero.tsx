@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+  type MotionValue,
+} from "framer-motion";
 import { ArrowRight, CalendarDays, MapPin, Sparkles, Users } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
@@ -19,38 +26,57 @@ import { FieldLabel, Stub } from "@/components/ui/stub";
 const ROTATE_MS = 6000;
 
 /**
- * Three slow blurred orbs on long, offset cycles.
+ * The paper field: light, and the grain of the sheet itself.
  *
- * Long durations and low opacity are the whole trick: nothing here should be
- * fast enough to catch the eye deliberately. It should register as the page
- * having depth, not as something moving.
+ * The dark hero floated three blurred colour orbs — crimson, gold, maroon — on
+ * long offset cycles. That is a lighting trick, and it only works on a dark
+ * ground: a coloured bloom reads as a lamp behind glass. Over paper the same
+ * orbs read as stains.
+ *
+ * What replaces them is what actually happens to a sheet of paper: light falls
+ * across it from one side, the far corner cools slightly, and the fibre itself
+ * has texture. The grain is now doing real work rather than covering banding —
+ * at this opacity on a near-white ground it is the difference between paper and
+ * a blank div.
+ *
+ * `parallax` is the far plane's scroll offset. It moves furthest and slowest,
+ * which is what makes the middle and foreground read as nearer.
  */
-function AmbientField() {
+function PaperField({ parallax }: { parallax: MotionValue<number> | number }) {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+    <motion.div
+      aria-hidden
+      style={{ y: parallax }}
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+    >
+      {/* Light from the top-left, the way a page sits under a window. */}
       <div
-        className="animate-drift-a absolute -left-[15%] -top-[20%] size-[42rem] rounded-full opacity-[0.22] blur-[110px]"
-        style={{ background: "var(--crimson-deep)" }}
-      />
-      <div
-        className="animate-drift-b absolute -right-[12%] top-[5%] size-[34rem] rounded-full opacity-[0.16] blur-[120px]"
-        style={{ background: "var(--gold)" }}
-      />
-      <div
-        className="animate-drift-c absolute bottom-[-25%] left-[25%] size-[38rem] rounded-full opacity-[0.18] blur-[130px]"
-        style={{ background: "var(--maroon)" }}
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(90% 70% at 12% -10%, #ffffff 0%, transparent 60%), radial-gradient(70% 60% at 95% 10%, #fdf3ea 0%, transparent 55%), radial-gradient(80% 70% at 60% 110%, #f6ece1 0%, transparent 60%)",
+        }}
       />
 
-      {/* A fine grain over the gradients. Without it, large blurred fields band
-          badly on 8-bit displays. */}
+      {/*
+       * One warm accent, kept faint. Crimson at 6% on paper is a blush at the
+       * edge of the sheet, not a glow — the brand touching the page rather than
+       * lighting it.
+       */}
       <div
-        className="absolute inset-0 opacity-[0.035] mix-blend-overlay"
+        className="animate-drift-a absolute -left-[12%] -top-[18%] size-[40rem] rounded-full opacity-[0.06] blur-[120px]"
+        style={{ background: "var(--ku-red)" }}
+      />
+
+      {/* The fibre. Multiply, not overlay: grain on paper darkens, it does not glow. */}
+      <div
+        className="absolute inset-0 opacity-[0.055] mix-blend-multiply"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")",
         }}
       />
-    </div>
+    </motion.div>
   );
 }
 
@@ -69,10 +95,42 @@ function AmbientField() {
 export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
   const { user } = useAuth();
   const hasFeatured = featured.length > 0;
+  const reduced = useReducedMotion();
+
+  const ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start start", "end start"],
+  });
+
+  /*
+   * Three rates, far to near, so the hero has depth rather than sliding.
+   *
+   * The spread is deliberately narrow — roughly 110px between the furthest and
+   * nearest plane across the whole scroll. Past that the planes stop reading as
+   * one scene lit from one place and start reading as three separate things
+   * moving at three speeds, which is the exact effect a parallax hero is
+   * usually accused of.
+   *
+   * The foreground moves *against* the scroll, which is what sells it: near
+   * things fall behind you more slowly than far things.
+   */
+  const farY = useTransform(scrollYProgress, [0, 1], [0, 90]);
+  const midY = useTransform(scrollYProgress, [0, 1], [0, 44]);
+  const nearY = useTransform(scrollYProgress, [0, 1], [0, -22]);
+
+  // Bound to a literal 0 rather than a slower value: reduced motion means
+  // static, not gentler.
+  const far = reduced ? 0 : farY;
+  const mid = reduced ? 0 : midY;
+  const near = reduced ? 0 : nearY;
 
   return (
-    <section className="relative flex min-h-[92dvh] items-center overflow-hidden px-5 pb-20 pt-24 sm:px-8">
-      <AmbientField />
+    <section
+      ref={ref}
+      className="relative flex min-h-[92dvh] items-center overflow-hidden px-5 pb-20 pt-24 sm:px-8"
+    >
+      <PaperField parallax={far} />
 
       {/*
         With a poster in the row the hero widens to max-w-6xl — which is also
@@ -91,10 +149,11 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
             hasFeatured && "lg:grid-cols-[minmax(0,1fr)_17rem]",
           )}
         >
-          <div>
+          {/* The nearest plane. Moves least, and against the scroll. */}
+          <motion.div style={{ y: near }}>
             <Reveal delay={0.05}>
-              <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-bone-dim">
-                <Sparkles className="size-3 text-gold" />
+              <span className="glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <Sparkles className="size-3 text-ku-red" />
                 Karnavati University
               </span>
             </Reveal>
@@ -114,7 +173,7 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
             */}
             <h1
               className={cn(
-                "display mt-7 max-w-4xl text-bone",
+                "display mt-7 max-w-4xl text-ink",
                 hasFeatured
                   ? "text-[clamp(2.75rem,9vw,5.75rem)] lg:text-[clamp(2.75rem,5.5vw,4.5rem)]"
                   : "text-[clamp(2.75rem,9vw,5.75rem)]",
@@ -122,13 +181,13 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
             >
               <WordReveal text="Everything happening" delay={0.15} />
               <br />
-              <span className="text-bone-dim">
+              <span className="text-ink-dim">
                 <WordReveal text="on campus, in one place." delay={0.35} />
               </span>
             </h1>
 
             <Reveal delay={0.7}>
-              <p className="mt-8 max-w-lg text-[17px] leading-relaxed text-bone-dim">
+              <p className="mt-8 max-w-lg text-[17px] leading-relaxed text-ink-dim">
                 Hackathons, cultural nights, workshops and everything the clubs
                 dream up. Reserve a seat in two taps — your pass lives on your
                 phone and the gate reads it even with no signal.
@@ -139,25 +198,32 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
               <div className="mt-11 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   href="#directory"
-                  className="group inline-flex h-13 items-center justify-center gap-2 rounded-full border border-line px-7 py-3.5 text-[15px] font-medium text-bone transition-colors hover:border-[color:var(--line-strong)] hover:bg-white/[0.05]"
+                  className="group inline-flex h-13 items-center justify-center gap-2 rounded-full border border-border px-7 py-3.5 text-[15px] font-medium text-ink transition-colors hover:border-[color:var(--line-strong)] hover:bg-paper-sunk"
                 >
                   Explore campus events
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
                 </Link>
 
-                {/* The one glowing element on the page. Everything else stays quiet
-                    so this reads as *the* thing to do. */}
+                {/*
+                  The one thing to do on this page. Everything else stays quiet
+                  so it reads as *the* action.
+
+                  On the dark ground this was a glowing gold gradient. Neither
+                  half of that survives the move: gold is 1.34:1 on paper and
+                  was dropped from the palette, and a glow is light emitted from
+                  a surface — which is what a dark UI does and paper cannot.
+
+                  So it becomes the brand red, filled and solid, sitting on the
+                  sheet with a real shadow. On paper a saturated red block among
+                  ink and white is already the loudest thing available; it does
+                  not need help to be found.
+                */}
                 <Link
                   href={user ? "/events/request" : "/login?next=%2Fevents%2Frequest"}
-                  className="group relative inline-flex h-13 items-center justify-center gap-2 overflow-hidden rounded-full px-7 py-3.5 text-[15px] font-semibold text-[#1a0207] transition-transform active:scale-[0.98]"
+                  className="group relative inline-flex h-13 items-center justify-center gap-2 overflow-hidden rounded-full bg-ku-red px-7 py-3.5 text-[15px] font-semibold text-[#ffffff] transition-transform active:scale-[0.98]"
                   style={{
-                    background:
-                      // #e1d078 is --gold lifted to L 0.852 at the same KU Yellow
-                      // hue (98.2). The old #f0c977 sat at hue 84.7 — fine against
-                      // the previous amber gold, a visible swerve against this one.
-                      "linear-gradient(135deg, var(--gold) 0%, #e1d078 45%, var(--gold) 100%)",
                     boxShadow:
-                      "0 0 0 1px #ffffff30 inset, 0 8px 30px -6px color-mix(in oklch, var(--gold) 55%, transparent)",
+                      "0 1px 0 0 #ffffff40 inset, 0 10px 24px -8px color-mix(in oklch, var(--ku-red) 45%, transparent)",
                   }}
                 >
                   <span className="relative z-10">Organize an event</span>
@@ -174,9 +240,11 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
                 </Link>
               </div>
             </Reveal>
-          </div>
+          </motion.div>
 
-          {hasFeatured ? <FeaturedMarquee events={featured} /> : null}
+          {hasFeatured ? (
+            <FeaturedMarquee events={featured} parallax={mid} />
+          ) : null}
         </div>
 
         {/* Three numbers that say what the platform does, without a chart. */}
@@ -188,10 +256,10 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
               ["One scan", "per pass, ever"],
             ].map(([value, label]) => (
               <div key={value} className="glass px-5 py-6">
-                <dt className="display text-[1.35rem] text-bone sm:text-[1.6rem]">
+                <dt className="display text-[1.35rem] text-ink sm:text-[1.6rem]">
                   {value}
                 </dt>
-                <dd className="mt-1.5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-bone-faint">
+                <dd className="mt-1.5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.12em] text-ink-soft">
                   {label}
                 </dd>
               </div>
@@ -212,7 +280,13 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
  * either way. Under `prefers-reduced-motion` the rotation never starts: the
  * featured event is still shown, it just stays put.
  */
-function FeaturedMarquee({ events }: { events: PublicEvent[] }) {
+function FeaturedMarquee({
+  events,
+  parallax,
+}: {
+  events: PublicEvent[];
+  parallax: MotionValue<number> | number;
+}) {
   const reduced = useReducedMotion();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -235,7 +309,8 @@ function FeaturedMarquee({ events }: { events: PublicEvent[] }) {
 
   return (
     <Reveal delay={0.5}>
-      <div
+      {/* The middle plane, between the paper field and the headline. */}
+      <motion.div
         role="group"
         aria-roledescription="carousel"
         aria-label="Featured events"
@@ -243,9 +318,10 @@ function FeaturedMarquee({ events }: { events: PublicEvent[] }) {
         onMouseLeave={() => setPaused(false)}
         onFocusCapture={() => setPaused(true)}
         onBlurCapture={() => setPaused(false)}
+        style={{ y: parallax }}
         className="mx-auto w-full max-w-[17rem] lg:mx-0"
       >
-        <Stub className="relative overflow-hidden">
+        <Stub data-theme="obsidian" className="relative overflow-hidden">
           {/* .poster carries the 2:3 ratio, so the frame has height before the
               image loads and nothing reflows underneath it. */}
           <div className="poster relative">
@@ -335,15 +411,15 @@ function FeaturedMarquee({ events }: { events: PublicEvent[] }) {
                   className={cn(
                     "block h-1.5 rounded-full transition-all duration-300",
                     i === active
-                      ? "w-6 bg-gold"
-                      : "w-1.5 bg-bone-faint group-hover/dot:bg-bone-dim",
+                      ? "w-6 bg-ku-red"
+                      : "w-1.5 bg-ink-faint group-hover/dot:bg-ink-dim",
                   )}
                 />
               </button>
             ))}
           </div>
         ) : null}
-      </div>
+      </motion.div>
     </Reveal>
   );
 }
