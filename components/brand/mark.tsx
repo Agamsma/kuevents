@@ -53,15 +53,32 @@ export function Mark({
  * Belongs in the footer, and optionally a landing page closing band — never the
  * header, where it competes with the wordmark for the same job and the page
  * ends up with two things claiming to be the identity.
+ *
+ * Sits on a white plate, always. The artwork sets "NAAC GRADE" and "ACCREDITED
+ * UNIVERSITY" in black and is built for white backgrounds; dropped straight
+ * onto the obsidian footer, the wordmark vanishes and all that survives is the
+ * flame and a floating "A+". A plate is also what print does with an
+ * accreditation mark on a dark masthead, so it is the honest fix rather than a
+ * workaround — and it means one component works on either ground.
  */
 export function NaacMark({ className }: { className?: string }) {
   return (
-    <Image
-      src="/ku-naac.webp"
-      alt="NAAC Grade A+ accredited university"
-      width={300}
-      height={100}
-      className={className}
-    />
+    <span
+      // `bg-[#ffffff]`, not `bg-white`: this project's `@theme inline` block
+      // redefines the colour namespace, so Tailwind's default `white` key does
+      // not resolve and `bg-white` silently produces no background at all.
+      className={
+        "inline-flex items-center rounded-md bg-[#ffffff] px-2.5 py-1.5 " +
+        (className ?? "")
+      }
+    >
+      <Image
+        src="/ku-naac.webp"
+        alt="NAAC Grade A+ accredited university"
+        width={300}
+        height={100}
+        className="h-full w-auto"
+      />
+    </span>
   );
 }

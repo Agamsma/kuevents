@@ -43,7 +43,7 @@ export function SiteHeader() {
     <header className="fixed inset-x-0 top-0 z-40">
       <div className="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
         <div className="glass flex h-14 items-center gap-3 rounded-full px-4 sm:px-5">
-          <Link href="/" className="display shrink-0 text-[18px] text-bone">
+          <Link href="/" className="display shrink-0 text-[18px] text-foreground">
             KU&nbsp;Events
           </Link>
 
@@ -56,15 +56,15 @@ export function SiteHeader() {
                 className={cn(
                   "relative rounded-full px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors",
                   isActive(item.href)
-                    ? "text-bone"
-                    : "text-bone-faint hover:text-bone-dim",
+                    ? "text-foreground"
+                    : "text-subtle-foreground hover:text-muted-foreground",
                 )}
               >
                 {isActive(item.href) ? (
                   <motion.span
                     layoutId="header-pill"
                     transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                    className="absolute inset-0 rounded-full bg-white/[0.07]"
+                    className="absolute inset-0 rounded-full bg-accent"
                   />
                 ) : null}
                 <span className="relative z-10">{item.label}</span>
@@ -79,7 +79,7 @@ export function SiteHeader() {
                 onClick={signOut}
                 aria-label="Sign out"
                 title={user.email ?? "Sign out"}
-                className="hidden rounded-full p-2 text-bone-faint transition-colors hover:text-bone md:block"
+                className="hidden rounded-full p-2 text-subtle-foreground transition-colors hover:text-foreground md:block"
               >
                 <LogOut className="size-4" />
               </button>
@@ -94,7 +94,7 @@ export function SiteHeader() {
               onClick={() => setOpen((v) => !v)}
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
-              className="rounded-full p-2 text-bone-dim transition-colors hover:text-bone md:hidden"
+              className="rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground md:hidden"
             >
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
@@ -118,8 +118,8 @@ export function SiteHeader() {
                   className={cn(
                     "block rounded-xl px-4 py-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors",
                     isActive(item.href)
-                      ? "bg-white/[0.07] text-bone"
-                      : "text-bone-dim hover:bg-white/[0.04]",
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent",
                   )}
                 >
                   {item.label}
@@ -133,7 +133,7 @@ export function SiteHeader() {
                     setOpen(false);
                     void signOut();
                   }}
-                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-mono text-[11px] uppercase tracking-[0.14em] text-bone-faint transition-colors hover:bg-white/[0.04]"
+                  className="mt-1 flex w-full items-center gap-2 rounded-xl px-4 py-3 text-left font-mono text-[11px] uppercase tracking-[0.14em] text-subtle-foreground transition-colors hover:bg-accent"
                 >
                   <LogOut className="size-3.5" />
                   Sign out

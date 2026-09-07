@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TRACK_FULL_NAMES, type EventTrack } from "@/lib/types";
+import { NaacMark } from "@/components/brand/mark";
 import { Perforation } from "@/components/ui/stub";
 
 export function SiteFooter() {
@@ -23,7 +24,7 @@ export function SiteFooter() {
                     className="h-16 w-auto"
                     priority={false}
                   />
-                  <div className="display text-[1.4rem] text-bone">KU Events</div>
+                  <div className="display text-[1.4rem] text-foreground">KU Events</div>
                 </div>
 
               Sizing is not arbitrary. KU's guideline sets a 0.6in ≈ 58px
@@ -47,8 +48,8 @@ export function SiteFooter() {
               it is outside AmbientField's bounds and lands on flat --obsidian
               rather than on a drifting gradient.
             */}
-            <div className="display text-[1.4rem] text-bone">KU Events</div>
-            <p className="mt-2.5 text-sm leading-relaxed text-bone-dim">
+            <div className="display text-[1.4rem] text-foreground">KU Events</div>
+            <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
               Event passes and gate check-in for Karnavati University.
             </p>
           </div>
@@ -63,7 +64,7 @@ export function SiteFooter() {
               <Link
                 key={href}
                 href={href}
-                className="font-mono text-[10px] uppercase tracking-[0.14em] text-bone-faint transition-colors hover:text-bone"
+                className="font-mono text-[10px] uppercase tracking-[0.14em] text-subtle-foreground transition-colors hover:text-foreground"
               >
                 {label}
               </Link>
@@ -78,7 +79,7 @@ export function SiteFooter() {
             {(Object.keys(TRACK_FULL_NAMES) as EventTrack[]).map((track) => (
               <span
                 key={track}
-                className="font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint"
+                className="font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground"
                 title={TRACK_FULL_NAMES[track]}
               >
                 {track}
@@ -86,9 +87,19 @@ export function SiteFooter() {
             ))}
           </div>
 
-          <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-bone-faint">
-            kuevents.in
-          </span>
+          <div className="flex items-center gap-4">
+            {/*
+             * Accreditation belongs in the footer, not the header. In the
+             * header it would compete with the wordmark for the same job and
+             * leave the page with two things claiming to be the identity; down
+             * here it reads as what it is — a credential on the masthead.
+             */}
+            <NaacMark className="h-7 w-auto opacity-80" />
+
+            <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
+              kuevents.in
+            </span>
+          </div>
         </div>
       </div>
     </footer>
