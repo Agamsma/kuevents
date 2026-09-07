@@ -30,6 +30,39 @@ const MAX_DEG = 12;
 /** Beyond this the phone is being waved, not held; clamping keeps it calm. */
 const GYRO_RANGE_DEG = 25;
 
+/**
+ * Lifts its children off the card's surface while the card is tilted.
+ *
+ * The tilt alone rotates a flat picture. What makes a card read as an *object*
+ * is parallax between the things printed on it — the title riding higher than
+ * the field labels, the QR sitting proud of both. `preserve-3d` on the tilting
+ * element is what lets a plain `translateZ` here do that.
+ *
+ * Depths are small on purpose. Past about 60px the layers visibly detach and
+ * the card stops being one thing.
+ */
+export function PassLayer({
+  z = 24,
+  className,
+  children,
+}: {
+  /** Height off the card face, in px. Keep under ~60. */
+  z?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const reduced = useReducedMotion();
+
+  return (
+    <div
+      className={className}
+      style={{ transform: reduced ? undefined : `translateZ(${z}px)` }}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function Tilt({
   children,
   className,

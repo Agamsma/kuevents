@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchMyTickets, fetchPublishedEvents } from "@/lib/firestore-queries";
 import { TRACK_LABELS, type EventDoc, type EventTrack, type TicketDoc } from "@/lib/types";
 import { EventCard } from "@/components/events/event-card";
+import { EventExpand } from "@/components/events/event-expand";
 import { Reveal } from "@/components/motion/reveal";
 import { NextPass } from "@/components/landing/next-pass";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,16 @@ export function EventDirectory() {
   const [myTickets, setMyTickets] = useState<Record<string, TicketDoc>>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabValue>("ALL");
+
+  /**
+   * Which poster is open, by id rather than by object.
+   *
+   * The list refetches and refilters underneath this, so holding the event
+   * itself would pin a stale copy open — and the expanded panel would keep
+   * showing a seat count the directory had already moved past.
+   */
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const setExpanded = setExpandedId;
 
   /**
    * The calendar loads for everyone, signed in or not.
@@ -208,6 +219,7 @@ export function EventDirectory() {
                           index={index}
                           className="w-full"
                           sizes={CARD_SIZES}
+                          onExpand={() => setExpanded(event.id)}
                         />
                       ))}
                     </AnimatePresence>
@@ -238,6 +250,17 @@ export function EventDirectory() {
           </Reveal>
         ) : null}
       </div>
+
+      {/*
+       * Resolved from the live list on every render rather than stored, so the
+       * open panel and the card behind it can never disagree about seats.
+       * `?? null` closes the panel by itself if the event leaves the list —
+       * unpublished mid-view, or filtered out by a tab change.
+       */}
+      <EventExpand
+        event={events.find((e) => e.id === expandedId) ?? null}
+        onClose={() => setExpandedId(null)}
+      />
     </section>
   );
 }

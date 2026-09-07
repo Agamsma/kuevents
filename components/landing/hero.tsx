@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { TRACK_LABELS } from "@/lib/types";
 import type { PublicEvent } from "@/lib/events-server";
 import { Reveal, WordReveal } from "@/components/motion/reveal";
+import { Magnetic } from "@/components/motion/magnetic";
+import { PosterField } from "@/components/landing/poster-field";
 import { FieldLabel, Stub } from "@/components/ui/stub";
 
 /** How long each featured poster holds before the next one fades in. */
@@ -133,6 +135,15 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
       <PaperField parallax={far} />
 
       {/*
+        Real event artwork on the wall behind the headline. Renders nothing
+        until at least three events have cover art, so the hero never shows
+        stock imagery standing in for a campus that has not uploaded any.
+      */}
+      <motion.div style={{ y: far }} className="absolute inset-0">
+        <PosterField events={featured} />
+      </motion.div>
+
+      {/*
         With a poster in the row the hero widens to max-w-6xl — which is also
         the header's width, so the two finally align. Without one it stays at
         max-w-5xl, exactly as before.
@@ -218,6 +229,7 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
                   ink and white is already the loudest thing available; it does
                   not need help to be found.
                 */}
+                <Magnetic className="inline-block">
                 <Link
                   href={user ? "/events/request" : "/login?next=%2Fevents%2Frequest"}
                   className="group relative inline-flex h-13 items-center justify-center gap-2 overflow-hidden rounded-full bg-ku-red px-7 py-3.5 text-[15px] font-semibold text-[#ffffff] transition-transform active:scale-[0.98]"
@@ -238,6 +250,7 @@ export function Hero({ featured = [] }: { featured?: PublicEvent[] }) {
                     className="absolute inset-y-0 w-1/3 -skew-x-[18deg] bg-white/35 blur-md"
                   />
                 </Link>
+                </Magnetic>
               </div>
             </Reveal>
           </motion.div>

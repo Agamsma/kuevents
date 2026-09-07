@@ -26,7 +26,7 @@ import {
 import type { EventDoc, TicketDoc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, Perforation, Stub } from "@/components/ui/stub";
-import { Tilt } from "@/components/pass/tilt";
+import { PassLayer, Tilt } from "@/components/pass/tilt";
 
 interface PassData {
   ticket: TicketDoc;
@@ -224,10 +224,10 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
         <Stub
           notched
           notchAt="calc(100% - 15.5rem)"
-          className="overflow-hidden shadow-[0_24px_60px_-20px_#1a141640]"
+          className="overflow-hidden shadow-[0_24px_60px_-20px_#1a141640] [transform-style:preserve-3d]"
         >
           {/* ── The half you keep ────────────────────────────────────────── */}
-          <div className="relative px-6 pb-7 pt-7">
+          <div className="relative px-6 pb-7 pt-7 [transform-style:preserve-3d]">
             {/*
               The flame rule. Gold left the palette with the move to paper, so
               the one warm mark across the top of the pass is the emblem’s own
@@ -243,9 +243,17 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
 
             <FieldLabel>Admit one · Karnavati University</FieldLabel>
 
-            <h1 className="display mt-3 text-[1.9rem] leading-[1.05] text-ink">
-              {event?.title ?? "Event"}
-            </h1>
+            {/*
+              The title rides highest of the printed matter. Depths climb with
+              importance — label on the surface, title above it, QR proudest of
+              all — so tilting the pass sorts it by what matters rather than
+              just rotating a picture.
+            */}
+            <PassLayer z={26}>
+              <h1 className="display mt-3 text-[1.9rem] leading-[1.05] text-ink">
+                {event?.title ?? "Event"}
+              </h1>
+            </PassLayer>
 
             <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-6">
               <Field label="Attendee" value={ticket.user_name} className="col-span-2" />
@@ -269,7 +277,7 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
           <Perforation className="mx-6" />
 
           {/* ── The half the gate takes ──────────────────────────────────── */}
-          <div className="flex flex-col items-center gap-4 px-6 pb-7 pt-7">
+          <div className="flex flex-col items-center gap-4 px-6 pb-7 pt-7 [transform-style:preserve-3d]">
             {isVoid ? (
               <div className="flex w-full items-center gap-2.5 rounded-md border border-refuse/30 bg-refuse/[0.08] px-3.5 py-2.5 text-[13px] font-medium text-refuse">
                 <AlertTriangle className="size-4 shrink-0" />
@@ -302,23 +310,30 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
              * off-white tuned for the dark ground.
              */
             }
+            <PassLayer z={42} className="relative z-10">
             <div
               className={
                 isVoid
-                  ? "relative z-10 rounded-lg bg-[#ffffff] p-3.5 opacity-20 grayscale"
-                  : "relative z-10 rounded-lg bg-[#ffffff] p-3.5"
+                  ? "rounded-lg bg-[#ffffff] p-3.5 opacity-20 grayscale"
+                  : "rounded-lg bg-[#ffffff] p-3.5"
               }
             >
               <QRCode
                 value={qrPayload}
                 size={176}
                 level="M"
-                bgColor="#f0ebe0"
+                // Pure white and near-black, not the warm off-whites used
+                // elsewhere. Every decoder thresholds light against dark, and
+                // this code has to survive a cracked screen at low brightness
+                // in front of a marshal's cheap camera. Contrast here is a
+                // functional requirement, not a style choice.
+                bgColor="#ffffff"
                 fgColor="#0b0a14"
                 // Re-rendered as SVG, so it stays crisp at any pixel density.
                 style={{ height: "auto", maxWidth: "100%", width: "176px" }}
               />
             </div>
+            </PassLayer>
 
             <div className="w-full text-center font-mono text-[9px] tracking-[0.14em] text-ink-soft">
               {ticket.id}

@@ -52,12 +52,15 @@ export function EventCard({
   index = 0,
   className,
   sizes = "15rem",
+  onExpand,
 }: {
   event: EventCardEvent;
   ticket?: TicketDoc;
   index?: number;
   className?: string;
   sizes?: string;
+  /** Expand in place instead of navigating. Omitted means plain navigation. */
+  onExpand?: () => void;
 }) {
   const { seatsLeft, full, low } = seatState(event);
 
@@ -76,6 +79,20 @@ export function EventCard({
     >
       <Link
         href={`/events/${event.id}`}
+        onClick={(e) => {
+          /*
+           * Expand in place, but only for a plain left click.
+           *
+           * Modifier and middle clicks fall through to the real navigation, so
+           * "open in new tab" still works and the href stays a genuine link for
+           * crawlers and for anyone who prefers a page. Swallowing every click
+           * would trade those away for an animation.
+           */
+          if (!onExpand) return;
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          onExpand();
+        }}
         className="group block h-full transition-transform duration-150 active:scale-[0.985]"
       >
         {/*
@@ -87,6 +104,13 @@ export function EventCard({
          * and the seat states exactly as they were tuned, instead of forcing a
          * scrim designed for a dark ground to also work as ink on white.
          */}
+        {/*
+          The shared element. This layoutId pairs with the expanded panel in
+          event-expand.tsx, so the poster is physically the same element in both
+          states and the card reads as opening rather than as a dialog arriving
+          on top of it.
+        */}
+        <motion.div layoutId={`poster-${event.id}`} className="h-full">
         <Stub
           data-theme="obsidian"
           className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-[color:var(--line-strong)] group-hover:shadow-[0_24px_50px_-24px_#00000059]"
@@ -195,6 +219,7 @@ export function EventCard({
             </div>
           </div>
         </Stub>
+        </motion.div>
       </Link>
     </motion.article>
   );
