@@ -1,17 +1,11 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AuthGuard } from "@/components/auth-guard";
-import { OrganizerHome } from "@/components/dashboard/organizer-home";
-
-export const metadata: Metadata = {
-  title: "Dashboard",
-  robots: { index: false, follow: false },
-};
-
-export default function DashboardPage() {
-  return (
-    <AuthGuard allowedRoles={["organizer", "superadmin"]}>
-      <OrganizerHome />
-    </AuthGuard>
-  );
+/**
+ * The dashboard moved into the staff console at `/staff`.
+ *
+ * Kept as a redirect rather than deleted: this path is in the wild — bookmarks,
+ * and links sent to organizers before the move.
+ */
+export default function DashboardRedirect() {
+  redirect("/staff");
 }

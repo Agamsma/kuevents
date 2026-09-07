@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 
 /**
- * The review queue is now a tab on the dashboard rather than its own page —
- * an organizer should not have to remember a second URL exists. Kept as a
- * redirect because this path was live.
+ * The review queue is a tab on the staff console rather than its own page — an
+ * organizer should not have to remember a second URL exists. The `?tab=` is
+ * preserved through the move, or an organizer following an old link lands on
+ * the wrong tab.
  */
 export default function RequestsRedirect() {
-  redirect("/dashboard?tab=requests");
+  redirect("/staff?tab=requests");
 }

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 
-import { SiteHeader } from "@/components/site-header";
+import { StaffHeader } from "@/components/staff/staff-header";
 import { AmbientPaper } from "@/components/motion/ambient";
 import { FieldLabel } from "@/components/ui/stub";
 import { Tabs, TabsContent, TabsList, TabsPill, TabsTrigger } from "@/components/ui/tabs";
@@ -77,12 +77,12 @@ export function DashboardShell({
   return (
     <div data-theme="paper" className="min-h-dvh bg-paper text-ink">
       <AmbientPaper />
-      <SiteHeader />
+      <StaffHeader />
 
       <main
         id="main"
         tabIndex={-1}
-        className="mx-auto w-full max-w-5xl px-5 pb-24 pt-28 outline-none sm:px-6"
+        className="mx-auto w-full max-w-5xl px-5 pb-24 pt-28 outline-none sm:px-6 md:pt-28 max-md:pt-40"
       >
         <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">

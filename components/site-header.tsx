@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, ShieldCheck, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 
@@ -26,16 +26,23 @@ export function SiteHeader() {
   const role = profile?.role;
   const canScan = role === "scanner" || role === "organizer" || role === "superadmin";
   const canReview = role === "organizer" || role === "superadmin";
-  const isSuperAdmin = role === "superadmin";
 
+  /*
+   * Student links only.
+   *
+   * Dashboard, Gate and Admin used to sit in this row, which put a shop window
+   * and a control panel in the same strip and made neither read clearly. They
+   * live in the staff console now; the only trace here is one quiet link, and
+   * only for someone who has somewhere to go.
+   */
   const nav = [
     { href: "/", label: "Events", show: true },
     { href: "/tickets", label: "My passes", show: Boolean(user) },
     { href: "/proposals", label: "My proposals", show: Boolean(user) },
-    { href: "/dashboard", label: "Dashboard", show: canReview },
-    { href: "/scanner", label: "Gate", show: canScan },
-    { href: "/admin", label: "Admin", show: isSuperAdmin },
   ].filter((item) => item.show);
+
+  /** Scanners have no console; the gate is their whole job. */
+  const staffHref = canReview ? "/staff" : canScan ? "/scanner" : null;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -89,6 +96,21 @@ export function SiteHeader() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            {/*
+              The only staff affordance on the student site. Quiet on purpose:
+              a student must never wonder what it is, and a staff member only
+              needs to find it once.
+            */}
+            {staffHref ? (
+              <Link
+                href={staffHref}
+                className="hidden items-center gap-1.5 rounded-full border border-border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-subtle-foreground transition-colors hover:text-foreground sm:inline-flex"
+              >
+                <ShieldCheck className="size-3" />
+                Staff
+              </Link>
+            ) : null}
+
             {loading ? null : user ? (
               <button
                 type="button"

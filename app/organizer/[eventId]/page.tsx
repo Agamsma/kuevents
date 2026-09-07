@@ -1,23 +1,11 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { AuthGuard } from "@/components/auth-guard";
-import { AttendeeList } from "@/components/attendee-list";
-
-export const metadata: Metadata = {
-  title: "Attendees",
-  robots: { index: false, follow: false },
-};
-
-export default async function AttendeesPage({
+/** The attendee roster moved to `/staff/events/[eventId]`. */
+export default async function OrganizerEventRedirect({
   params,
 }: {
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
-
-  return (
-    <AuthGuard allowedRoles={["organizer", "superadmin"]}>
-      <AttendeeList eventId={eventId} />
-    </AuthGuard>
-  );
+  redirect(`/staff/events/${eventId}`);
 }

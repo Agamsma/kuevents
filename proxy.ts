@@ -38,18 +38,44 @@ const PROTECTED_PREFIXES = [
   "/proposals",
   "/admin",
   "/dashboard",
+  "/staff",
   "/events/request",
 ];
+
+/**
+ * Paths inside a protected prefix that must stay reachable signed out.
+ *
+ * `/staff/login` is the staff console's own front door. It sits under `/staff`,
+ * so without this exception the guard above would bounce a signed-out marshal
+ * to the *student* login — the one outcome that page exists to avoid.
+ */
+const PUBLIC_EXCEPTIONS = ["/staff/login"];
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isProtected = PROTECTED_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
+  const isProtected =
+    !PUBLIC_EXCEPTIONS.includes(pathname) &&
+    PROTECTED_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
 
   if (isProtected && !request.cookies.has(SIGNED_IN_HINT_COOKIE)) {
-    const login = new URL("/login", request.url);
+    /*
+     * Bounce to the door that matches the room.
+     *
+     * Someone deep-linking into the staff console while signed out was landing
+     * on the student sign-in page, which then returned them to a console — two
+     * different products in one flow. The staff console has its own front door
+     * and this is the one place that decides which one you meet.
+     */
+    const isStaffPath =
+      pathname === "/staff" ||
+      pathname.startsWith("/staff/") ||
+      // The gate keeps its own bare screen outside /staff, but it is staff
+      // work: a marshal opening it cold should meet the staff door too.
+      pathname.startsWith("/scanner");
+    const login = new URL(isStaffPath ? "/staff/login" : "/login", request.url);
     login.searchParams.set("next", pathname);
     return NextResponse.redirect(login);
   }
