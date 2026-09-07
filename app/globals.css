@@ -358,7 +358,13 @@
   font-weight: 500;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--bone-faint);
+  /*
+   * The alias, not `--bone-faint` — this label appears on the paper event page
+   * and inside the dark poster on the same screen. On paper it resolves to
+   * `--ink-soft` (5.51:1) rather than `--ink-faint` (3.68:1), because a field
+   * label is text, however small.
+   */
+  color: var(--subtle-foreground);
 }
 
 .tabular {

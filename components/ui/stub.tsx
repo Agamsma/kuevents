@@ -65,11 +65,16 @@ export function Field({
       <FieldLabel>{label}</FieldLabel>
       <div
         className={cn(
-          "mt-1.5 flex items-center gap-1.5 text-sm font-medium text-bone",
+          // Alias-driven, not `text-bone`: this pair is set on the paper event
+          // page, on the pass, and on the gate console, so it has to read on
+          // whichever ground it lands on.
+          "mt-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground",
           valueClassName,
         )}
       >
-        {Icon ? <Icon className="size-3.5 shrink-0 text-bone-faint" /> : null}
+        {Icon ? (
+          <Icon className="size-3.5 shrink-0 text-subtle-foreground" />
+        ) : null}
         <span className="truncate">{value}</span>
       </div>
     </div>

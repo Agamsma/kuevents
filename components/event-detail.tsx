@@ -112,7 +112,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
 
   if (state.status === "loading") {
     return (
-      <AppShell>
+      <AppShell theme="paper">
         <div className="stub h-72 animate-pulse" />
       </AppShell>
     );
@@ -120,10 +120,10 @@ export function EventDetail({ eventId }: { eventId: string }) {
 
   if (state.status === "missing") {
     return (
-      <AppShell>
+      <AppShell theme="paper">
         <div className="flex min-h-[50dvh] flex-col items-center justify-center gap-5 text-center">
           <AlertTriangle className="size-8 text-refuse" />
-          <p className="max-w-[17rem] text-sm leading-relaxed text-bone-dim">
+          <p className="max-w-[17rem] text-sm leading-relaxed text-ink-dim">
             This event does not exist, or it has been taken down.
           </p>
           <Button variant="outline" asChild>
@@ -145,10 +145,10 @@ export function EventDetail({ eventId }: { eventId: string }) {
   const pct = event.capacity > 0 ? Math.min((issued / event.capacity) * 100, 100) : 0;
 
   return (
-    <AppShell>
+    <AppShell theme="paper">
       <Link
         href="/"
-        className="mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-bone-faint transition-colors hover:text-bone"
+        className="mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft transition-colors hover:text-ink"
       >
         <ArrowLeft className="size-3" />
         All events
@@ -159,20 +159,20 @@ export function EventDetail({ eventId }: { eventId: string }) {
           {/* Date block and title, the two things worth knowing first. */}
           <div className="flex items-start gap-5">
             <div className="shrink-0 text-center">
-              <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-gold">
+              <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-ku-red">
                 {formatMonthAbbr(event.starts_at)}
               </div>
-              <div className="display text-[2.75rem] leading-none text-bone tabular">
+              <div className="display text-[2.75rem] leading-none text-ink tabular">
                 {formatDayNum(event.starts_at)}
               </div>
             </div>
 
             <div className="min-w-0 flex-1">
-              <h1 className="display text-[1.9rem] leading-[1.05] text-bone">
+              <h1 className="display text-[1.9rem] leading-[1.05] text-ink">
                 {event.title}
               </h1>
               {event.status === "live" ? (
-                <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/[0.08] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
+                <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-ku-red/30 bg-ku-red/[0.07] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ku-red">
                   <span className="animate-live-pulse size-1.5 rounded-full bg-gold" />
                   Happening now
                 </span>
@@ -181,7 +181,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
           </div>
 
           {event.description ? (
-            <p className="mt-6 text-[15px] leading-relaxed text-bone-dim">
+            <p className="mt-6 text-[15px] leading-relaxed text-ink-dim">
               {event.description}
             </p>
           ) : null}
@@ -200,7 +200,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
             <div className="mt-7">
               <div className="flex items-baseline justify-between">
                 <FieldLabel>Seats taken</FieldLabel>
-                <span className="font-mono text-[11px] text-bone-dim tabular">
+                <span className="font-mono text-[11px] text-ink-dim tabular">
                   {issued} / {event.capacity}
                 </span>
               </div>
@@ -261,7 +261,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
       </Stub>
 
       {ticket ? null : (
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-bone-faint">
+        <p className="mt-5 text-center text-[11px] leading-relaxed text-ink-soft">
           One pass per student. It admits you once, and works at the gate even
           with no signal.
         </p>
