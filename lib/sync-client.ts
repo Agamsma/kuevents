@@ -183,16 +183,41 @@ export function startAutoSync(
 ): () => void {
   const run = () => {
     if (typeof navigator !== "undefined" && !navigator.onLine) return;
-    void flushSyncQueue(getIdToken).then(onResult);
+
+    /*
+     * The `catch` is not decoration.
+     *
+     * `flushSyncQueue` reports its own failures in the returned result rather
+     * than throwing, so this only fires on something genuinely unexpected — but
+     * without it, that something becomes an unhandled rejection at a gate,
+     * where nobody has a console open. Worse, `onResult` itself sets state and
+     * raises a toast, so a throw *inside the callback* would land here too and
+     * vanish silently.
+     *
+     * Logged rather than surfaced: a background retry that failed is not worth
+     * interrupting a queue for, and the next poll will try again.
+     */
+    void flushSyncQueue(getIdToken)
+      .then(onResult)
+      .catch((error) => {
+        console.error("[sync] auto-sync failed", error);
+      });
   };
 
   // Reclaim anything a previous session left mid-upload before the first flush.
   // Nothing else can be in flight yet, so this cannot race a live request.
-  const started = recoverStrandedScans().then((recovered) => {
-    if (recovered > 0) {
-      console.warn(`[sync] recovered ${recovered} scan(s) stranded in-flight`);
-    }
-  });
+  const started = recoverStrandedScans()
+    .then((recovered) => {
+      if (recovered > 0) {
+        console.warn(`[sync] recovered ${recovered} scan(s) stranded in-flight`);
+      }
+    })
+    // Same reasoning as `run`: recovery failing must not take the gate down
+    // with it. Everything it would have reclaimed is still in the outbox, and
+    // the next poll gets another go.
+    .catch((error) => {
+      console.error("[sync] could not recover stranded scans", error);
+    });
 
   const onVisible = () => {
     if (document.visibilityState === "visible") run();
