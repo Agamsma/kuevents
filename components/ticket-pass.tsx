@@ -26,6 +26,7 @@ import {
 import type { EventDoc, TicketDoc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, Perforation, Stub } from "@/components/ui/stub";
+import { Tilt } from "@/components/pass/tilt";
 
 interface PassData {
   ticket: TicketDoc;
@@ -86,11 +87,22 @@ function LiveStrip({ qrHash, now }: { qrHash: string; now: number }) {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="relative flex min-h-dvh flex-col items-center px-4 py-8 sm:py-12">
+    <main
+      data-theme="paper"
+      className="relative flex min-h-dvh flex-col items-center bg-paper px-4 py-8 text-ink sm:py-12"
+    >
+      {/*
+       * A pass held up to the light. The crimson bloom behind it was a glow —
+       * light emitted from the ground — which paper cannot do. This is the
+       * warmth a sheet picks up from the room instead.
+       */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 left-1/2 size-[30rem] -translate-x-1/2 rounded-full opacity-[0.15] blur-[100px]"
-        style={{ background: "var(--crimson)" }}
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(80% 50% at 50% -5%, #ffffff 0%, transparent 60%), radial-gradient(60% 40% at 50% 105%, #f6ece1 0%, transparent 65%)",
+        }}
       />
       <div className="relative w-full max-w-[24rem]">{children}</div>
     </main>
@@ -168,7 +180,7 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
     return (
       <Shell>
         <div className="flex min-h-[60dvh] items-center justify-center">
-          <Loader2 className="size-5 animate-spin text-bone-faint" />
+          <Loader2 className="size-5 animate-spin text-ink-soft" />
         </div>
       </Shell>
     );
@@ -179,7 +191,7 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
       <Shell>
         <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-5 text-center">
           <AlertTriangle className="size-8 text-refuse" />
-          <p className="max-w-[16rem] text-sm leading-relaxed text-bone-dim">
+          <p className="max-w-[16rem] text-sm leading-relaxed text-ink-dim">
             {state.message}
           </p>
           <Button variant="outline" asChild>
@@ -201,26 +213,37 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
     <Shell>
       <Link
         href="/tickets"
-        className="mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-bone-faint transition-colors hover:text-bone"
+        className="mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft transition-colors hover:text-ink"
       >
         <ArrowLeft className="size-3" />
         All passes
       </Link>
 
       <article className="animate-stub-in">
+        <Tilt>
         <Stub
           notched
           notchAt="calc(100% - 15.5rem)"
-          className="overflow-hidden shadow-[0_24px_60px_-20px_#000000cc]"
+          className="overflow-hidden shadow-[0_24px_60px_-20px_#1a141640]"
         >
           {/* ── The half you keep ────────────────────────────────────────── */}
           <div className="relative px-6 pb-7 pt-7">
-            {/* gold rule: the one warm mark on an otherwise crimson card. */}
-            <div className="absolute inset-x-0 top-0 h-[3px] bg-gold" />
+            {/*
+              The flame rule. Gold left the palette with the move to paper, so
+              the one warm mark across the top of the pass is the emblem’s own
+              gradient instead — the same red-into-orange the foil sweeps.
+            */}
+            <div
+              className="absolute inset-x-0 top-0 h-[3px]"
+              style={{
+                background:
+                  "linear-gradient(90deg, var(--ku-red) 0%, var(--ku-orange) 55%, var(--ku-red) 100%)",
+              }}
+            />
 
             <FieldLabel>Admit one · Karnavati University</FieldLabel>
 
-            <h1 className="display mt-3 text-[1.9rem] leading-[1.05] text-bone">
+            <h1 className="display mt-3 text-[1.9rem] leading-[1.05] text-ink">
               {event?.title ?? "Event"}
             </h1>
 
@@ -264,11 +287,26 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
               </div>
             )}
 
+            {/*
+             * `relative z-10` lifts the QR above the foil.
+             *
+             * The foil is painted last inside <Tilt>, so without this it sweeps
+             * a warm gradient straight across the code. Caught on a phone
+             * viewport, where it was plainly tinting the modules. A decorative
+             * overlay that lowers contrast on the one element the entire
+             * product depends on scanning — offline, at a gate, on a marshal's
+             * cheap camera — is not a trade worth making for a highlight.
+             *
+             * `bg-[#ffffff]` rather than `bg-bone`: the quiet zone around a QR
+             * must be the brightest thing available, and --bone is a warm
+             * off-white tuned for the dark ground.
+             */
+            }
             <div
               className={
                 isVoid
-                  ? "rounded-lg bg-bone p-3.5 opacity-20 grayscale"
-                  : "rounded-lg bg-bone p-3.5"
+                  ? "relative z-10 rounded-lg bg-[#ffffff] p-3.5 opacity-20 grayscale"
+                  : "relative z-10 rounded-lg bg-[#ffffff] p-3.5"
               }
             >
               <QRCode
@@ -282,14 +320,15 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
               />
             </div>
 
-            <div className="w-full text-center font-mono text-[9px] tracking-[0.14em] text-bone-faint">
+            <div className="w-full text-center font-mono text-[9px] tracking-[0.14em] text-ink-soft">
               {ticket.id}
             </div>
           </div>
         </Stub>
+        </Tilt>
       </article>
 
-      <p className="mx-auto mt-6 max-w-[19rem] text-center text-[11px] leading-relaxed text-bone-faint">
+      <p className="mx-auto mt-6 max-w-[19rem] text-center text-[11px] leading-relaxed text-ink-soft">
         A screenshot will not get anyone in. This code admits one person once,
         and the strip above stops ticking the moment the screen is captured.
       </p>

@@ -51,10 +51,10 @@ export function MyPasses() {
   const used = tickets.filter((t) => t.status !== "issued" || t.checked_in);
 
   return (
-    <AppShell>
+    <AppShell theme="paper">
       <div className="mb-9">
         <FieldLabel>Karnavati University</FieldLabel>
-        <h1 className="display mt-2.5 text-[2.5rem] text-bone sm:text-[3.25rem]">
+        <h1 className="display mt-2.5 text-[2.5rem] text-ink sm:text-[3.25rem]">
           Your passes
         </h1>
       </div>
@@ -68,8 +68,8 @@ export function MyPasses() {
       ) : tickets.length === 0 ? (
         <Stub notched className="px-6 py-14 text-center">
           <div className="mx-auto max-w-xs">
-            <div className="display text-[1.5rem] text-bone">No passes yet</div>
-            <p className="mt-2 text-sm leading-relaxed text-bone-dim">
+            <div className="display text-[1.5rem] text-ink">No passes yet</div>
+            <p className="mt-2 text-sm leading-relaxed text-ink-dim">
               Grab one from the events list and it will live here, ready for the
               gate.
             </p>
@@ -143,10 +143,10 @@ function PassRow({
         style={{ animationDelay: `${Math.min(index, 6) * 55}ms` }}
       >
         <div className="min-w-0 flex-1 px-5 py-4">
-          <h2 className="display truncate text-[1.15rem] text-bone">
+          <h2 className="display truncate text-[1.15rem] text-ink">
             {event?.title ?? "Event"}
           </h2>
-          <div className="mt-1.5 font-mono text-[11px] text-bone-dim">
+          <div className="mt-1.5 font-mono text-[11px] text-ink-dim">
             {event ? `${formatDate(event.starts_at)} · ${formatTime(event.starts_at)}` : "—"}
           </div>
         </div>
@@ -168,10 +168,10 @@ function PassRow({
             </>
           ) : (
             <>
-              <span className="font-mono text-[13px] tracking-[0.14em] text-bone tabular">
+              <span className="font-mono text-[13px] tracking-[0.14em] text-ink tabular">
                 {shortCode(ticket.id)}
               </span>
-              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-bone-faint">
+              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-ink-soft">
                 Pass no.
               </span>
             </>
