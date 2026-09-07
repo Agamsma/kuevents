@@ -3,6 +3,7 @@
 import { motion, type Variants } from "framer-motion";
 
 import { cn } from "@/lib/utils";
+import { EASE, REVEAL_DISTANCE, REVEAL_DURATION } from "@/lib/motion";
 
 /**
  * The page's motion vocabulary, in one place.
@@ -15,16 +16,25 @@ import { cn } from "@/lib/utils";
  * All of it is disabled by `prefers-reduced-motion` via the global CSS rule.
  */
 
-const EASE = [0.16, 1, 0.3, 1] as const;
+/**
+ * The rise, built once.
+ *
+ * `Reveal` used to inline a second copy of this that differed only by `delay`,
+ * so the curve and the distance were written twice and could drift apart. One
+ * factory, both callers.
+ */
+function rise(delay = 0): Variants {
+  return {
+    hidden: { opacity: 0, y: REVEAL_DISTANCE },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: REVEAL_DURATION, ease: EASE, delay },
+    },
+  };
+}
 
-export const riseVariants: Variants = {
-  hidden: { opacity: 0, y: 14 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.7, ease: EASE },
-  },
-};
+export const riseVariants: Variants = rise();
 
 export const staggerVariants: Variants = {
   hidden: {},
@@ -50,14 +60,7 @@ export function Reveal({
       initial="hidden"
       whileInView="visible"
       viewport={{ once, margin: "-80px" }}
-      variants={{
-        hidden: { opacity: 0, y: 14 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.7, ease: EASE, delay },
-        },
-      }}
+      variants={rise(delay)}
       className={cn(className)}
     >
       {children}
