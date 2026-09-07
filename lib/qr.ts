@@ -16,8 +16,17 @@
 
 const QR_PREFIX = "KUE1";
 
-/** Encoded as `KUE1:<64 hex chars>`. */
-const QR_PAYLOAD_RE = new RegExp(`^${QR_PREFIX}:([a-f0-9]{64})$`);
+/**
+ * Encoded as `KUE1:<64 hex chars>`.
+ *
+ * Case-insensitive, and that flag is load-bearing rather than defensive:
+ * `parseQrPayload` lowercases the scanned string before matching, so a
+ * case-sensitive pattern built from the uppercase `QR_PREFIX` could never
+ * match its own output. Every prefixed pass was refused at the gate as "Not a
+ * pass"; only the bare-hash fallback below still scanned. Keep the flag if
+ * either the prefix or that `toLowerCase()` ever changes.
+ */
+const QR_PAYLOAD_RE = new RegExp(`^${QR_PREFIX}:([a-f0-9]{64})$`, "i");
 
 function toHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
