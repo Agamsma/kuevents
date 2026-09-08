@@ -36,12 +36,26 @@ export function QrViewport({
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Keep the newest callback reachable without restarting the camera when the
-  // parent re-renders — tearing down a video stream mid-queue is very visible.
+  /*
+   * Keep the newest callbacks reachable without restarting the camera when the
+   * parent re-renders — tearing down a video stream mid-queue is very visible.
+   *
+   * `onCameraError` needs this as much as `onScan` does, and did not have it.
+   * The console passes it as an inline arrow, so it had a new identity on every
+   * render; with it in the effect's dependency array, the camera was being
+   * stopped and restarted on every state change — and a scan sets four pieces
+   * of state. That churn is what kept catching `stop()` on a scanner that had
+   * not finished starting.
+   */
   const onScanRef = useRef(onScan);
   useEffect(() => {
     onScanRef.current = onScan;
   }, [onScan]);
+
+  const onCameraErrorRef = useRef(onCameraError);
+  useEffect(() => {
+    onCameraErrorRef.current = onCameraError;
+  }, [onCameraError]);
 
   const handleDecoded = useCallback(
     (payload: string) => {
@@ -97,7 +111,14 @@ export function QrViewport({
         );
 
         if (disposed) {
-          await instance.stop().catch(() => undefined);
+          // Same synchronous-throw trap as the cleanup below: `.catch()` on the
+          // returned promise cannot absorb a throw that happens before the
+          // promise exists.
+          try {
+            await instance.stop();
+          } catch {
+            // Never fully started; nothing to stop.
+          }
           return;
         }
 
@@ -108,7 +129,7 @@ export function QrViewport({
         const message = describeCameraError(error);
         setErrorMessage(message);
         setStatus("error");
-        onCameraError?.(message);
+        onCameraErrorRef.current?.(message);
       }
     }
 
@@ -120,20 +141,47 @@ export function QrViewport({
       scannerRef.current = null;
 
       if (current) {
-        // `stop()` rejects if the camera never finished starting; either way we
-        // still want `clear()` to release the <video> element.
-        Promise.resolve(current.stop())
-          .catch(() => undefined)
-          .finally(() => {
-            try {
-              current.clear();
-            } catch {
-              // Already torn down.
-            }
-          });
+        /*
+         * `stop()` THROWS SYNCHRONOUSLY when the scanner is not running —
+         * "Cannot stop, scanner is not running or paused." It does not reject.
+         *
+         * This used to be `Promise.resolve(current.stop()).catch(...)`, written
+         * against the belief that it rejects. `Promise.resolve()` can only
+         * absorb a rejection from a promise it is handed; a synchronous throw
+         * inside the argument escapes before `.catch()` is ever attached. And
+         * because React catches anything thrown in an effect cleanup, that
+         * escaped straight into the route's error boundary — the gate showed
+         * "That page hit a problem" on a scan whose check-in had already been
+         * written.
+         *
+         * The try/catch is the fix; the `.catch()` stays for the case the
+         * comment originally described, since `stop()` can also reject once it
+         * genuinely is running.
+         */
+        try {
+          Promise.resolve(current.stop())
+            .catch(() => undefined)
+            .finally(() => {
+              try {
+                current.clear();
+              } catch {
+                // Already torn down.
+              }
+            });
+        } catch {
+          // Never started, or already stopped. Still release the element.
+          try {
+            current.clear();
+          } catch {
+            // Already torn down.
+          }
+        }
       }
     };
-  }, [active, handleDecoded, onCameraError]);
+    // `onCameraError` is deliberately absent from these deps: it is read
+    // through a ref, so the camera survives the parent re-rendering. `active`
+    // is the only thing that should ever start or stop it.
+  }, [active, handleDecoded]);
 
   return (
     <div className="stub relative aspect-square w-full overflow-hidden bg-black">
