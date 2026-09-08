@@ -154,6 +154,16 @@ export interface EventDoc {
    * is a real problem, pointless for an open lecture.
    */
   rotating_qr?: boolean;
+  /**
+   * Bookings are paused: the event stays on the directory and every pass
+   * already issued stays valid, but no new ones are cut.
+   *
+   * Distinct from unpublishing. Unpublishing hides the event and strands the
+   * people already holding passes with no page to open; pausing is the thing
+   * an organizer actually wants when the venue capacity is in doubt an hour
+   * before doors.
+   */
+  bookings_paused?: boolean;
   reviewed_by?: string | null;
   reviewed_at?: number | null;
   created_at: number;

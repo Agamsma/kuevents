@@ -87,6 +87,7 @@ export const PATCH = apiRoute("events patch", async (request) => {
     review_note?: unknown;
     capacity?: unknown;
     rotating_qr?: unknown;
+    bookings_paused?: unknown;
   }>(request);
 
   if (typeof body.event_id !== "string" || !body.event_id) {
@@ -123,6 +124,18 @@ export const PATCH = apiRoute("events patch", async (request) => {
     reviewed_by: caller.uid,
     reviewed_at: Date.now(),
   };
+
+  /*
+   * Pausing is separate from the status transition, and may be sent on its own.
+   *
+   * An organizer pausing bookings an hour before doors is not changing the
+   * event's lifecycle - it stays published, it stays on the directory, and
+   * every pass already issued stays valid. Only an explicit boolean moves it,
+   * so a PATCH that says nothing about pausing leaves it alone.
+   */
+  if (typeof body.bookings_paused === "boolean") {
+    update.bookings_paused = body.bookings_paused;
+  }
 
   if (typeof body.review_note === "string" && body.review_note.trim()) {
     update.review_note = body.review_note.trim().slice(0, 500);

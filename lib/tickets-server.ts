@@ -52,6 +52,19 @@ export async function issueTicket(input: IssueTicketInput): Promise<TicketDoc> {
       throw new BookingError("Bookings are not open for this event.", 409);
     }
 
+    /*
+     * Checked here, inside the transaction, for the same reason capacity is.
+     * A pre-flight read outside it would let two taps that arrive either side
+     * of the pause both succeed - and the second one is exactly the booking the
+     * organizer paused to prevent.
+     */
+    if (event.bookings_paused === true) {
+      throw new BookingError(
+        "Bookings for this event are paused. Check back shortly.",
+        409,
+      );
+    }
+
     const issued = event.tickets_issued ?? 0;
     if (event.capacity > 0 && issued >= event.capacity) {
       throw new BookingError("This event is full.", 409);

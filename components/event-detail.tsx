@@ -142,6 +142,14 @@ export function EventDetail({ eventId }: { eventId: string }) {
   const issued = event.tickets_issued ?? 0;
   const { seatsLeft, full: soldOut, low } = seatState(event);
   const bookingsClosed = event.status !== "published" && event.status !== "live";
+  /*
+   * Paused is not closed, and the button must not pretend otherwise.
+   *
+   * A paused event is still on the directory and still running; bookings are
+   * held. "Bookings closed" would read as over, which sends someone away from
+   * an event they could still get into in ten minutes.
+   */
+  const paused = event.bookings_paused === true;
   const pct = event.capacity > 0 ? Math.min((issued / event.capacity) * 100, 100) : 0;
 
   return (
@@ -250,11 +258,17 @@ export function EventDetail({ eventId }: { eventId: string }) {
           ) : (
             <Button
               size="lg"
-              disabled={soldOut || bookingsClosed || booking}
+              disabled={soldOut || bookingsClosed || paused || booking}
               onClick={book}
             >
               {booking ? <Loader2 className="size-4 animate-spin" /> : null}
-              {bookingsClosed ? "Bookings closed" : soldOut ? "Full" : "Get pass"}
+              {bookingsClosed
+                ? "Bookings closed"
+                : paused
+                  ? "Bookings paused"
+                  : soldOut
+                    ? "Full"
+                    : "Get pass"}
             </Button>
           )}
         </div>

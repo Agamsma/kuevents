@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Loader2, Plus, Users } from "lucide-react";
+import { Loader2, Pause, Play, Plus, Users } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { fetchAllEvents, fetchEventsByOrganizer } from "@/lib/firestore-queries";
@@ -90,6 +90,63 @@ export function EventsPanel({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
+
+  /**
+   * Pause or resume bookings without touching the lifecycle.
+   *
+   * Sends the event's existing status back unchanged — the API requires one,
+   * and this must not double as a status transition. "Close bookings" below
+   * moves an event to `draft`, which hides it from the directory entirely and
+   * leaves everyone already holding a pass with nothing to open. Pausing is the
+   * thing an organizer actually wants an hour before doors, when the venue
+   * capacity is suddenly in doubt.
+   */
+  const setPaused = useCallback(
+    async (event: EventDoc, paused: boolean) => {
+      setBusyId(event.id);
+      try {
+        const token = await getIdToken();
+        if (!token) throw new Error("Your session expired. Sign in again.");
+
+        const response = await fetch("/api/events", {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            event_id: event.id,
+            status: event.status,
+            bookings_paused: paused,
+          }),
+        });
+
+        const body = await response.json();
+        if (!response.ok) throw new Error(body.error ?? "Could not update.");
+
+        setEvents((current) =>
+          current.map((e) =>
+            e.id === event.id ? { ...e, bookings_paused: paused } : e,
+          ),
+        );
+
+        toast.success(paused ? "Bookings paused" : "Bookings reopened", {
+          id: "org-pause",
+          description: paused
+            ? "Still on the directory. Passes already issued stay valid."
+            : undefined,
+        });
+      } catch (error) {
+        toast.error("Could not update", {
+          id: "org-pause",
+          description: error instanceof Error ? error.message : "Try again.",
+        });
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [getIdToken],
+  );
 
   const setStatus = useCallback(
     async (event: EventDoc, status: EventStatus) => {
@@ -214,6 +271,7 @@ export function EventsPanel({
               event={event}
               busy={busyId === event.id}
               onSetStatus={(status) => setStatus(event, status)}
+              onSetPaused={(paused) => setPaused(event, paused)}
               index={index}
             />
           ))}
@@ -233,14 +291,17 @@ function ManagedEvent({
   event,
   busy,
   onSetStatus,
+  onSetPaused,
   index,
 }: {
   event: EventDoc;
   busy: boolean;
   onSetStatus: (status: EventStatus) => void;
+  onSetPaused: (paused: boolean) => void;
   index: number;
 }) {
   const style = STATUS_STYLE[event.status] ?? STATUS_STYLE.draft;
+  const paused = event.bookings_paused === true;
   const issued = event.tickets_issued ?? 0;
   const pct = event.capacity > 0 ? Math.min((issued / event.capacity) * 100, 100) : 0;
 
@@ -328,14 +389,20 @@ function ManagedEvent({
             <Button size="sm" variant="gold" onClick={() => onSetStatus("live")}>
               Start event
             </Button>
+            <PauseButton paused={paused} onSetPaused={onSetPaused} />
             <Button size="sm" variant="ghost" onClick={() => onSetStatus("draft")}>
-              Close bookings
+              Unpublish
             </Button>
           </>
         ) : event.status === "live" ? (
-          <Button size="sm" variant="outline" onClick={() => onSetStatus("ended")}>
-            End event
-          </Button>
+          <>
+            {/* A live event can still be taking bookings, so it can still be
+                paused — walk-ups at the door are exactly when a venue fills. */}
+            <PauseButton paused={paused} onSetPaused={onSetPaused} />
+            <Button size="sm" variant="outline" onClick={() => onSetStatus("ended")}>
+              End event
+            </Button>
+          </>
         ) : (
           <Button size="sm" variant="ghost" onClick={() => onSetStatus("published")}>
             Reopen
@@ -525,5 +592,41 @@ function Input({
         <p className="mt-1 font-mono text-[10px] text-subtle-foreground">{hint}</p>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * Pause or resume bookings.
+ *
+ * Its own component because it appears twice — on a published event and on a
+ * live one — and the two must never drift apart. The label says what the click
+ * will do, not what the state currently is: a button reading "Paused" gives no
+ * clue whether pressing it pauses or unpauses.
+ */
+function PauseButton({
+  paused,
+  onSetPaused,
+}: {
+  paused: boolean;
+  onSetPaused: (paused: boolean) => void;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant={paused ? "default" : "outline"}
+      onClick={() => onSetPaused(!paused)}
+    >
+      {paused ? (
+        <>
+          <Play className="size-3.5" />
+          Resume bookings
+        </>
+      ) : (
+        <>
+          <Pause className="size-3.5" />
+          Pause bookings
+        </>
+      )}
+    </Button>
   );
 }
