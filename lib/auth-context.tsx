@@ -148,6 +148,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await fbSignOut(auth);
       throw new Error(DOMAIN_REJECTION_MESSAGE);
     }
+
+    /*
+     * Write the hint cookie here, not only in `onAuthStateChanged`.
+     *
+     * The listener fires on its own schedule, and the caller navigates the
+     * moment this promise resolves. Someone who signs in and immediately taps
+     * "My passes" was losing that race: `proxy.ts` saw a protected route with
+     * no cookie and bounced them back to /login — from a session that had in
+     * fact just succeeded.
+     *
+     * Setting it synchronously here means the cookie exists before anything can
+     * navigate. The listener still sets it, which is harmless and remains the
+     * authority for every other path into a session (a reload, a restored
+     * session, a sign-out).
+     */
+    setSignedInHint(true);
   }, []);
 
   const signOut = useCallback(async () => {

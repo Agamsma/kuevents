@@ -11,19 +11,49 @@
 // Bumped whenever the caching or fallback behaviour changes: `activate` deletes
 // every cache whose name is not this one, so a version bump is what actually
 // evicts shells saved under the old rules from browsers already in the wild.
-const CACHE = "ku-events-shell-v2";
+//
+// v4 is not optional. Under v2 a signed-out visit to any protected route stored
+// the login page under that route's key, and those entries are sitting in real
+// browsers right now. Nothing in the new code deletes them by itself — only the
+// rename does.
+const CACHE = "ku-events-shell-v4";
 
 const SHELL = ["/", "/scanner", "/manifest.webmanifest", "/icon.svg"];
+
+/**
+ * Precache one shell URL, refusing anything that came back from a redirect.
+ *
+ * NOT `cache.add()`. That does its own fetch, follows redirects, and stores the
+ * result under the URL asked for — so precaching "/scanner" while signed out
+ * fetched it, was bounced to /login by the proxy, and cached the *login page*
+ * as the gate's offline shell. The one screen whose whole purpose is working
+ * with no signal had a sign-in form saved as its offline copy.
+ *
+ * `cache.add` also never passes through the fetch handler, so the redirect
+ * guard there cannot help; this has to be done here too.
+ *
+ * Caching nothing is the right failure. A protected shell fetched while signed
+ * out has no cacheable content, and the fetch handler will store the real thing
+ * on the first visit that actually reaches it.
+ */
+async function precache(cache, url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok || response.redirected) return;
+    await cache.put(url, response);
+  } catch {
+    // Offline during install, or the URL 404s. Tolerated: a missing shell entry
+    // degrades the offline experience, a failed install removes it entirely.
+  }
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      // `addAll` rejects the whole install if any single URL 404s, so each
-      // entry is added independently and failures are tolerated.
-      .then((cache) =>
-        Promise.all(SHELL.map((url) => cache.add(url).catch(() => undefined))),
-      )
+      // Each entry is added independently: `addAll` rejects the whole install
+      // if any single URL fails.
+      .then((cache) => Promise.all(SHELL.map((url) => precache(cache, url))))
       .then(() => self.skipWaiting()),
   );
 });
@@ -68,6 +98,29 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
+        /*
+         * A followed redirect is NOT this URL's content.
+         *
+         * `fetch()` follows redirects by default, so requesting a protected
+         * route while signed out returns `200 basic` — for the *login page*,
+         * because `proxy.ts` bounced it. Caching that under the requested key
+         * stored the login screen as if it were /tickets, and every later visit
+         * was served a sign-in form for a page the user was signed in to.
+         *
+         * `response.redirected` is the only thing that distinguishes them: the
+         * status is 200 and the type is `basic` either way.
+         *
+         * Handing a redirected response to a navigation is also invalid per the
+         * service worker spec, so navigations get a real redirect instead and
+         * the browser's URL bar follows it honestly.
+         */
+        if (response.redirected) {
+          if (request.mode === "navigate") {
+            return Response.redirect(response.url, 302);
+          }
+          return response;
+        }
+
         if (response.ok && response.type === "basic") {
           const copy = response.clone();
           void caches.open(CACHE).then((cache) => cache.put(request, copy));
