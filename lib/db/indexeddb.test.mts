@@ -33,6 +33,7 @@ import {
   // Explicit .ts extension: this file runs under Node's native type stripping,
   // which resolves as plain ESM and will not guess the extension for us.
 } from "./indexeddb.ts";
+import { rotatingCode, windowIndex } from "../qr.ts";
 
 const EVENT = "evt_techfest";
 const SCANNER = "uid_marshal";
@@ -371,5 +372,89 @@ describe("outbox", () => {
     assert.equal(await pendingScanCount(), 0);
     assert.equal((await rosterStats(EVENT)).total, 0);
     assert.equal(await gateDb.roster_meta.get(EVENT), undefined);
+  });
+});
+
+/**
+ * Rotating passes.
+ *
+ * Opt-in per event. The invariant that matters is that a photograph stops
+ * working — and that a rotating ticket cannot be walked through with the static
+ * payload it would have had before rotation was switched on.
+ */
+describe("rotating passes at the gate", () => {
+  const SECRET = "per-ticket-rotation-key";
+  const HASH = "b".repeat(64);
+  const T0 = 1_800_000_000_000;
+
+  const rotatingTicket = () =>
+    ticket({ qr_hash: HASH, ticket_id: "tkt_rot", rotation_secret: SECRET });
+
+  function rotatingScan(nowMs: number, renderedAt = nowMs) {
+    const window = windowIndex(renderedAt);
+    return resolveScan({
+      qrHash: HASH,
+      eventId: EVENT,
+      scannedBy: SCANNER,
+      deviceId: DEVICE,
+      now: nowMs,
+      rotating: { window, code: rotatingCode(SECRET, window) },
+    });
+  }
+
+  test("admits a pass showing a current code", async () => {
+    await seed([rotatingTicket()]);
+
+    const result = await rotatingScan(T0);
+    assert.equal(result.kind, "admitted");
+    assert.equal(await pendingScanCount(), 1);
+  });
+
+  test("refuses a screenshot, and does not admit or enqueue it", async () => {
+    await seed([rotatingTicket()]);
+
+    // Rendered at T0, presented two minutes later.
+    const result = await rotatingScan(T0 + 120_000, T0);
+
+    assert.equal(result.kind, "stale");
+    // The two things that must NOT have happened: the holder must still be
+    // outside, and nothing may reach the outbox for a refusal.
+    assert.equal((await rosterStats(EVENT)).checkedIn, 0);
+    assert.equal(await pendingScanCount(), 0);
+  });
+
+  test("refuses a rotating ticket presented as a static pass", async () => {
+    await seed([rotatingTicket()]);
+
+    // No `rotating` argument — a KUE1 payload, which is what an old screenshot
+    // taken before the event switched rotation on would carry.
+    const result = await resolveScan({
+      qrHash: HASH,
+      eventId: EVENT,
+      scannedBy: SCANNER,
+      deviceId: DEVICE,
+      now: T0,
+    });
+
+    assert.equal(result.kind, "stale");
+    assert.equal(await pendingScanCount(), 0);
+  });
+
+  test("reads stale before duplicate, so the marshal is told the truth", async () => {
+    await seed([rotatingTicket()]);
+    await rotatingScan(T0);
+
+    // Already admitted, now presented as a screenshot. "Already in" would send
+    // the marshal looking for someone who came through; this is a photograph.
+    const result = await rotatingScan(T0 + 120_000, T0);
+    assert.equal(result.kind, "stale");
+  });
+
+  test("leaves ordinary passes completely alone", async () => {
+    // No rotation_secret: the static path must be untouched by any of this.
+    await seed([ticket()]);
+
+    const result = await scan("a".repeat(64));
+    assert.equal(result.kind, "admitted");
   });
 });

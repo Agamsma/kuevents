@@ -86,6 +86,7 @@ export const PATCH = apiRoute("events patch", async (request) => {
     status?: unknown;
     review_note?: unknown;
     capacity?: unknown;
+    rotating_qr?: unknown;
   }>(request);
 
   if (typeof body.event_id !== "string" || !body.event_id) {
@@ -137,6 +138,16 @@ export const PATCH = apiRoute("events patch", async (request) => {
     update.capacity = Number.isFinite(capacity) && capacity >= 0
       ? Math.floor(capacity)
       : (event.expected_footfall ?? 0);
+
+    /*
+     * Rotating passes are the approving organizer's call, alongside capacity.
+     *
+     * Only read on approval, and only `=== true` counts: an absent or malformed
+     * field leaves rotation off. A security setting that could be switched on
+     * by a stray value is one nobody can reason about — and switching it on
+     * mid-event would strand every pass already issued without a secret.
+     */
+    update.rotating_qr = body.rotating_qr === true;
   }
 
   await ref.update(update);

@@ -120,3 +120,111 @@ export function liveWindowCode(qrHash: string, nowMs: number = Date.now()): stri
 export function msUntilNextWindow(nowMs: number = Date.now()): number {
   return LIVE_WINDOW_MS - (nowMs % LIVE_WINDOW_MS);
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Rotating passes — opt-in, per event
+   ───────────────────────────────────────────────────────────────────────────
+   For events where a screenshot passed around a group chat is a real problem.
+   Off by default: rotation costs clock tolerance at the gate, and most campus
+   events do not need it.
+
+   THE PART THAT MATTERS. The rotating code is keyed by `rotation_secret`, a
+   per-ticket random value that is NEVER inside the QR. It reaches exactly two
+   places: the holder's own device, which may read its own ticket document, and
+   the gate's roster download, which is organizer-only.
+
+   Deriving it from `qr_hash` instead — which IS in the QR, in plaintext — would
+   be forgeable by anyone who photographs a pass: decode the hash, run the
+   public derivation, mint a fresh valid code forever. That is worse than a
+   static QR, because it looks protected and is not.
+
+   What this actually buys: a screenshot captures one code, and that code dies
+   at the end of its window. It does not stop someone screen-sharing a live
+   pass — nothing does except the pass admitting exactly once, which still
+   holds.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+const ROTATING_PREFIX = "KUE2";
+
+/** Encoded as `KUE2:<64 hex>:<window>:<8 hex>`. Case-insensitive, as KUE1 is. */
+const ROTATING_RE = new RegExp(
+  `^${ROTATING_PREFIX}:([a-f0-9]{64}):(\\d+):([a-f0-9]{8})$`,
+  "i",
+);
+
+/** Which 30-second window a moment falls in. */
+export function windowIndex(nowMs: number = Date.now()): number {
+  return Math.floor(nowMs / LIVE_WINDOW_MS);
+}
+
+/**
+ * The rotating code for one window, keyed by the ticket's secret.
+ *
+ * FNV-1a over `secret:window`. Not cryptographic, and it does not need to be:
+ * the secret is the only thing withheld, the value is short-lived, and the
+ * unforgeable half of the pass is still the HMAC in `qr_hash`. This exists to
+ * make a *stale* code detectable, not to be a second signature.
+ */
+export function rotatingCode(secret: string, window: number): string {
+  let acc = 0x811c9dc5;
+  const material = `${secret}:${window}`;
+
+  for (let i = 0; i < material.length; i += 1) {
+    acc ^= material.charCodeAt(i);
+    acc = Math.imul(acc, 0x01000193) >>> 0;
+  }
+
+  return acc.toString(16).padStart(8, "0");
+}
+
+/** Wraps a rotating pass into its scannable payload. */
+export function buildRotatingPayload(
+  qrHash: string,
+  secret: string,
+  nowMs: number = Date.now(),
+): string {
+  const window = windowIndex(nowMs);
+  return `${ROTATING_PREFIX}:${qrHash}:${window}:${rotatingCode(secret, window)}`;
+}
+
+export interface RotatingScan {
+  qrHash: string;
+  window: number;
+  code: string;
+}
+
+/** Extracts a rotating payload's parts, or null if it is not one. */
+export function parseRotatingPayload(raw: string): RotatingScan | null {
+  const match = ROTATING_RE.exec(raw.trim().toLowerCase());
+  if (!match) return null;
+
+  return { qrHash: match[1], window: Number(match[2]), code: match[3] };
+}
+
+/**
+ * How many windows either side of "now" a gate will still accept.
+ *
+ * One window each way, so a pass is valid for 30–60 seconds depending where in
+ * the window it was rendered. This is clock tolerance, not generosity: a
+ * marshal's phone and a student's phone are two unsynchronised clocks, and a
+ * gate that refuses a valid pass because one of them drifted twenty seconds is
+ * a gate that gets switched off.
+ */
+export const WINDOW_TOLERANCE = 1;
+
+/** Whether a scanned rotating code is current, given the ticket's secret. */
+export function isRotatingCodeCurrent(
+  // Only the window and the code are needed. Taking the full RotatingScan
+  // would force the gate to carry a hash it has already used to find the
+  // ticket.
+  scan: Pick<RotatingScan, "window" | "code">,
+  secret: string,
+  nowMs: number = Date.now(),
+): boolean {
+  const now = windowIndex(nowMs);
+  if (Math.abs(scan.window - now) > WINDOW_TOLERANCE) return false;
+
+  // Recompute for the window the pass claims, then compare. Comparing against
+  // "now" instead would reject a pass rendered a second before a rollover.
+  return rotatingCode(secret, scan.window) === scan.code.toLowerCase();
+}

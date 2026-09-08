@@ -106,6 +106,15 @@ export interface EventDoc {
   organizer_uid: string | null;
   /** Set when an organizer rejects, so the proposer learns why. */
   review_note?: string | null;
+  /**
+   * Issue rotating passes for this event.
+   *
+   * Off by default, and worth leaving off for most things. Rotation makes a
+   * screenshot stop scanning after about a minute, at the cost of clock
+   * tolerance at the gate - useful when a pass being forwarded to a group chat
+   * is a real problem, pointless for an open lecture.
+   */
+  rotating_qr?: boolean;
   reviewed_by?: string | null;
   reviewed_at?: number | null;
   created_at: number;
@@ -128,6 +137,17 @@ export interface TicketDoc {
   /** UID of the scanner account that admitted this holder. */
   checked_in_by: string | null;
   seat_label?: string | null;
+  /**
+   * Per-ticket key for rotating passes. Present only when the event asked for
+   * them.
+   *
+   * NEVER goes into the QR. It reaches the holder's own device (Firestore
+   * rules let you read your own ticket and nobody else's) and the gate's
+   * roster download (organizer-only). That asymmetry is the entire security
+   * property: a photograph of a pass captures one code, and cannot produce the
+   * next one.
+   */
+  rotation_secret?: string | null;
   created_at: number;
 }
 

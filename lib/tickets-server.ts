@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomBytes } from "node:crypto";
+
 import { Timestamp, type Firestore } from "firebase-admin/firestore";
 
 import { adminDb } from "@/lib/firebase-admin";
@@ -83,6 +85,21 @@ export async function issueTicket(input: IssueTicketInput): Promise<TicketDoc> {
       userId: input.user.uid,
     });
 
+    /*
+     * A rotation key, only when the event asked for rotating passes.
+     *
+     * Minted server-side and never derived from anything in the QR — deriving
+     * it from `qr_hash` would let anyone who photographed a pass compute every
+     * future code from the photograph alone.
+     *
+     * Absent (not empty-string) on ordinary events, so `rotation_secret` being
+     * present is itself the signal that this pass rotates. One source of truth
+     * beats the pass and the gate each re-reading the event to decide.
+     */
+    const rotationSecret = event.rotating_qr
+      ? randomBytes(32).toString("hex")
+      : null;
+
     const doc: TicketDoc = {
       id: ticketRef.id,
       event_id: input.eventId,
@@ -95,6 +112,7 @@ export async function issueTicket(input: IssueTicketInput): Promise<TicketDoc> {
       check_in_time: null,
       checked_in_by: null,
       seat_label: null,
+      rotation_secret: rotationSecret,
       created_at: now,
     };
 

@@ -17,7 +17,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { ACTIVE_EVENT_KEY } from "@/lib/constants";
 import { fetchEventTickets, fetchOpenEvents } from "@/lib/firestore-queries";
-import { parseQrPayload } from "@/lib/qr";
+import { parseQrPayload, parseRotatingPayload } from "@/lib/qr";
 import { playError, playNeutral, playSuccess, primeAudio } from "@/lib/sound";
 import { flushSyncQueue, startAutoSync } from "@/lib/sync-client";
 import { formatDateTime } from "@/lib/format";
@@ -176,6 +176,9 @@ export function ScannerConsole() {
           user_name: t.user_name,
           user_email: t.user_email,
           seat_label: t.seat_label ?? null,
+          // Without this every rotating pass would scan as stale: the gate
+          // would have no key to check the code against.
+          rotation_secret: t.rotation_secret ?? null,
           status: t.status ?? "issued",
           // Carry the server's check-in state across so a second device
           // starting fresh mid-event does not re-admit people.
@@ -247,7 +250,14 @@ export function ScannerConsole() {
     async (payload: string) => {
       if (!eventId || !user) return;
 
-      const qrHash = parseQrPayload(payload);
+      /*
+       * Two payload shapes. A rotating pass carries its window and code; a
+       * static one carries only the hash. resolveScan decides what to do with
+       * that - including refusing a static payload for a ticket whose roster
+       * row says it should be rotating.
+       */
+      const rotating = parseRotatingPayload(payload);
+      const qrHash = rotating ? rotating.qrHash : parseQrPayload(payload);
 
       if (!qrHash) {
         playNeutral();
@@ -260,6 +270,9 @@ export function ScannerConsole() {
         eventId,
         scannedBy: user.uid,
         deviceId,
+        rotating: rotating
+          ? { window: rotating.window, code: rotating.code }
+          : undefined,
       });
 
       applyOutcome(result, qrHash);

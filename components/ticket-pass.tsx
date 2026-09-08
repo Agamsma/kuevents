@@ -14,7 +14,12 @@ import {
 
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth-context";
-import { buildQrPayload, liveWindowCode, msUntilNextWindow } from "@/lib/qr";
+import {
+  buildQrPayload,
+  buildRotatingPayload,
+  liveWindowCode,
+  msUntilNextWindow,
+} from "@/lib/qr";
 import {
   formatClock,
   formatDate,
@@ -207,7 +212,18 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
 
   const { ticket, event } = state.data;
   const isVoid = ticket.status !== "issued";
-  const qrPayload = buildQrPayload(ticket.qr_hash);
+  /*
+   * A rotating pass re-encodes every window; a static one never changes.
+   *
+   * `now` already ticks once a second for the live strip, so this recomputes
+   * with it and the QR rolls over on its own. The secret is read from the
+   * ticket document, which Firestore rules let only this holder read - it is
+   * never in the QR, which is the whole point.
+   */
+  const rotates = Boolean(ticket.rotation_secret);
+  const qrPayload = rotates
+    ? buildRotatingPayload(ticket.qr_hash, ticket.rotation_secret!, now)
+    : buildQrPayload(ticket.qr_hash);
 
   return (
     <Shell>

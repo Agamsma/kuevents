@@ -83,6 +83,7 @@ export function RequestsPanel({
   const decide = useCallback(
     async (event: EventDoc, status: "published" | "rejected", extras: {
       capacity?: number;
+      rotating_qr?: boolean;
       review_note?: string;
     }) => {
       setWorking(true);
@@ -170,7 +171,9 @@ export function RequestsPanel({
         decision={decision}
         working={working}
         onClose={() => !working && setDecision(null)}
-        onApprove={(event, capacity) => decide(event, "published", { capacity })}
+        onApprove={(event, capacity, rotatingQr) =>
+          decide(event, "published", { capacity, rotating_qr: rotatingQr })
+        }
         onReject={(event, note) => decide(event, "rejected", { review_note: note })}
         onEscalate={(kind) =>
           setDecision((d) => (d ? { kind, event: d.event } : null))
@@ -281,7 +284,7 @@ function ReviewDialog({
   decision: Decision;
   working: boolean;
   onClose: () => void;
-  onApprove: (event: EventDoc, capacity: number) => void;
+  onApprove: (event: EventDoc, capacity: number, rotatingQr: boolean) => void;
   onReject: (event: EventDoc, note: string) => void;
   onEscalate: (kind: "approve" | "reject") => void;
 }) {
@@ -367,7 +370,7 @@ function ReviewDialog({
             event={event}
             working={working}
             onCancel={onClose}
-            onConfirm={(capacity) => onApprove(event, capacity)}
+            onConfirm={(capacity, rotatingQr) => onApprove(event, capacity, rotatingQr)}
           />
         ) : null}
 
@@ -398,11 +401,15 @@ function ApprovePanel({
   event: EventDoc;
   working: boolean;
   onCancel: () => void;
-  onConfirm: (capacity: number) => void;
+  onConfirm: (capacity: number, rotatingQr: boolean) => void;
 }) {
   const [capacity, setCapacity] = useState(
     String(event.expected_footfall || 100),
   );
+
+  // Off by default. Rotation costs clock tolerance at the gate and most campus
+  // events do not need it, so it should be a decision rather than a default.
+  const [rotatingQr, setRotatingQr] = useState(false);
 
   return (
     <>
@@ -427,11 +434,39 @@ function ApprovePanel({
         autoFocus
       />
 
+      {/*
+        Rotating passes. A real choice with a real cost, so it says what it does
+        and what it does not - "secure" on its own would invite people to switch
+        it on for everything and then wonder why the gate is fussy.
+      */}
+      <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted px-3.5 py-3">
+        <input
+          type="checkbox"
+          checked={rotatingQr}
+          onChange={(e) => setRotatingQr(e.target.checked)}
+          className="mt-0.5 size-4 shrink-0 accent-[color:var(--primary)]"
+        />
+        <span className="min-w-0">
+          <span className="block text-[13px] font-medium text-foreground">
+            Rotating passes
+          </span>
+          <span className="mt-1 block text-[12px] leading-relaxed text-muted-foreground">
+            The QR changes every 30 seconds, so a screenshot stops working about
+            a minute after it is taken. Worth it for something confidential;
+            unnecessary for an open event, and it makes the gate stricter about
+            clocks.
+          </span>
+        </span>
+      </label>
+
       <DialogFooter>
         <Button variant="ghost" onClick={onCancel} disabled={working}>
           Cancel
         </Button>
-        <Button onClick={() => onConfirm(Number(capacity) || 0)} disabled={working}>
+        <Button
+          onClick={() => onConfirm(Number(capacity) || 0, rotatingQr)}
+          disabled={working}
+        >
           {working ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (

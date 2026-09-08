@@ -5,6 +5,7 @@ import Dexie, { type EntityTable } from "dexie";
 // Relative, with the extension: this module is also loaded directly by
 // `node --test`, which resolves neither the `@/` alias nor a bare specifier.
 import { DEVICE_ID_KEY } from "../constants.ts";
+import { isRotatingCodeCurrent } from "../qr.ts";
 
 /**
  * Local roster + outbox for the gate scanner.
@@ -23,6 +24,16 @@ export interface CachedTicket {
   user_name: string;
   user_email: string;
   seat_label: string | null;
+  /**
+   * Rotation key, for events issuing rotating passes. Absent means this pass
+   * is a static one and must be scanned as such.
+   *
+   * It reaches the device through the organizer-only roster download and is
+   * never in a QR, which is what stops a photographed pass generating fresh
+   * codes. Not indexed: it is only ever read for a ticket already found by
+   * `qr_hash`.
+   */
+  rotation_secret?: string | null;
   /** Tickets that were cancelled/refunded before roster download. */
   status: "issued" | "cancelled" | "refunded";
   /**
@@ -124,6 +135,15 @@ export type ScanOutcome =
   | { kind: "cancelled"; ticket: CachedTicket }
   | { kind: "wrong_event"; ticket: CachedTicket; expectedEventId: string }
   | { kind: "not_found"; qrHash: string }
+  /**
+   * A rotating pass whose code belongs to a window that has passed.
+   *
+   * Its own verdict, not `not_found`, because the holder genuinely is on the
+   * roster — this is almost always a screenshot, and occasionally a phone with
+   * a badly wrong clock. Telling a marshal "not on list" for someone who is on
+   * the list sends them to the wrong conversation.
+   */
+  | { kind: "stale"; ticket: CachedTicket }
   | { kind: "unreadable"; raw: string };
 
 /**
@@ -141,8 +161,15 @@ export async function resolveScan(params: {
   now?: number;
   /** True when a marshal admitted this holder by hand, not by camera. */
   manual?: boolean;
+  /**
+   * The rotating code the pass presented, if it was a rotating payload.
+   *
+   * Passed in rather than parsed here so this stays the pure decision function
+   * it already is: the caller owns the QR format, this owns the verdict.
+   */
+  rotating?: { window: number; code: string };
 }): Promise<ScanOutcome> {
-  const { qrHash, eventId, scannedBy, deviceId, manual = false } = params;
+  const { qrHash, eventId, scannedBy, deviceId, manual = false, rotating } = params;
   const now = params.now ?? Date.now();
 
   return gateDb.transaction(
@@ -160,6 +187,25 @@ export async function resolveScan(params: {
 
       if (ticket.status !== "issued") {
         return { kind: "cancelled", ticket };
+      }
+
+      /*
+       * Rotation, checked before the duplicate rule.
+       *
+       * Order matters. A stale screenshot of an already-admitted pass should
+       * read as stale, not as a duplicate: "already in" invites the marshal to
+       * go and find the person who came through, when what actually happened is
+       * that this holder is presenting a photograph.
+       *
+       * A pass whose roster row carries a secret MUST present a rotating code.
+       * Accepting a static payload for it would mean anyone who kept an old
+       * screenshot from before the event switched rotation on could still walk
+       * in.
+       */
+      if (ticket.rotation_secret) {
+        if (!rotating || !isRotatingCodeCurrent(rotating, ticket.rotation_secret, now)) {
+          return { kind: "stale", ticket };
+        }
       }
 
       if (ticket.checked_in) {

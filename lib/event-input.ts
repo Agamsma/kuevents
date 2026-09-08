@@ -30,6 +30,14 @@ export interface EventInput {
   expected_footfall: number;
   capacity: number;
   cover_image_url: string | null;
+  /**
+   * Issue rotating passes for this event.
+   *
+   * A checkbox, so anything not exactly true is false - an absent field, a
+   * string, a stray null. Defaulting a security setting ON from malformed
+   * input would be the wrong direction to fail.
+   */
+  rotating_qr: boolean;
 }
 
 /**
@@ -108,6 +116,7 @@ export function parseEventInput(
       expected_footfall: expectedFootfall,
       capacity,
       cover_image_url: coverImageUrl,
+      rotating_qr: body.rotating_qr === true,
     },
   };
 }

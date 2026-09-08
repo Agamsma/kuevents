@@ -3,7 +3,17 @@ import { describe, it } from "node:test";
 
 // Relative, with the extension: `node --test` resolves neither the `@/` alias
 // nor a bare specifier. `qr.ts` has no runtime imports for that reason.
-import { buildQrPayload, parseQrPayload, liveWindowCode, LIVE_WINDOW_MS } from "./qr.ts";
+import {
+  buildQrPayload,
+  buildRotatingPayload,
+  isRotatingCodeCurrent,
+  liveWindowCode,
+  LIVE_WINDOW_MS,
+  parseQrPayload,
+  parseRotatingPayload,
+  rotatingCode,
+  windowIndex,
+} from "./qr.ts";
 
 const HASH = "a1b2c3d4".repeat(8); // 64 hex chars, the shape computeQrHash emits
 
@@ -59,5 +69,87 @@ describe("live window code", () => {
     for (let i = 0; i < 200; i += 1) {
       assert.equal(liveWindowCode(HASH, i * LIVE_WINDOW_MS).length, 6);
     }
+  });
+});
+
+describe("rotating passes", () => {
+  const SECRET = "s3cr3t-per-ticket-value";
+  const T0 = 1_800_000_000_000; // an exact window boundary
+
+  it("reads back a rotating payload it just built", () => {
+    const payload = buildRotatingPayload(HASH, SECRET, T0);
+    const parsed = parseRotatingPayload(payload);
+
+    assert.ok(parsed);
+    assert.equal(parsed!.qrHash, HASH);
+    assert.equal(parsed!.window, windowIndex(T0));
+  });
+
+  it("accepts a code inside the tolerance window", () => {
+    const payload = parseRotatingPayload(buildRotatingPayload(HASH, SECRET, T0))!;
+
+    // Rendered now, scanned now.
+    assert.equal(isRotatingCodeCurrent(payload, SECRET, T0), true);
+    // Rendered a window ago — a marshal's clock running slightly behind.
+    assert.equal(
+      isRotatingCodeCurrent(payload, SECRET, T0 + LIVE_WINDOW_MS),
+      true,
+    );
+    // And ahead, which is the same drift in the other direction.
+    assert.equal(
+      isRotatingCodeCurrent(payload, SECRET, T0 - LIVE_WINDOW_MS),
+      true,
+    );
+  });
+
+  it("refuses a screenshot taken two windows ago", () => {
+    // The whole point. A captured pass stops scanning about a minute later.
+    const payload = parseRotatingPayload(buildRotatingPayload(HASH, SECRET, T0))!;
+
+    assert.equal(
+      isRotatingCodeCurrent(payload, SECRET, T0 + LIVE_WINDOW_MS * 2),
+      false,
+    );
+    assert.equal(
+      isRotatingCodeCurrent(payload, SECRET, T0 + LIVE_WINDOW_MS * 20),
+      false,
+    );
+  });
+
+  it("cannot be forged from the QR alone", () => {
+    /*
+     * The security property this feature rests on. Everything inside the
+     * payload is public — the hash, the window, the code. If someone who
+     * photographed a pass could mint a fresh code from that, rotation would be
+     * theatre. Only the secret, which is never in the QR, produces valid codes.
+     */
+    const stolen = parseRotatingPayload(buildRotatingPayload(HASH, SECRET, T0))!;
+    const laterWindow = { ...stolen, window: stolen.window + 5 };
+
+    // Derived from what a thief can see: the hash itself.
+    const forged = {
+      ...laterWindow,
+      code: rotatingCode(stolen.qrHash, laterWindow.window),
+    };
+
+    assert.equal(
+      isRotatingCodeCurrent(forged, SECRET, T0 + LIVE_WINDOW_MS * 5),
+      false,
+      "a code derived from the public hash must not verify",
+    );
+  });
+
+  it("gives different tickets different codes in the same window", () => {
+    assert.notEqual(
+      rotatingCode(SECRET, windowIndex(T0)),
+      rotatingCode("a-different-ticket-secret", windowIndex(T0)),
+    );
+  });
+
+  it("is not confused with a static pass", () => {
+    // Each parser must refuse the other's format, or a rotating event would
+    // silently accept a static screenshot.
+    assert.equal(parseRotatingPayload(buildQrPayload(HASH)), null);
+    assert.equal(parseQrPayload(buildRotatingPayload(HASH, SECRET, T0)), null);
   });
 });

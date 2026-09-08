@@ -6,6 +6,7 @@ import {
   CalendarX2,
   CheckCircle2,
   QrCode,
+  RefreshCw,
   UserX,
   XCircle,
 } from "lucide-react";
@@ -137,6 +138,24 @@ function describe(outcome: ScanOutcome) {
         headline: "Not on list",
         name: "Unknown pass",
         detail: "Not in the downloaded roster. Re-download if it is stale.",
+      };
+
+    case "stale":
+      /*
+       * Amber, not red, and deliberately so.
+       *
+       * The holder IS on the roster — this is a photograph of a pass, or a
+       * phone with a badly wrong clock. A full red refusal would send the
+       * marshal into the conversation they have with a stranger; what is
+       * actually needed is "open the app". Naming the person is what makes
+       * that askable.
+       */
+      return {
+        surface: "bg-[#FFB34D] text-[#211502]",
+        Icon: RefreshCw,
+        headline: "Expired code",
+        name: outcome.ticket.user_name,
+        detail: "That is a screenshot. Ask them to open the live pass.",
       };
 
     case "unreadable":
