@@ -54,19 +54,58 @@ export type EventStatus =
   | "cancelled";
 
 /** Which school or body is putting the event on. Drives the directory tabs. */
-export type EventTrack = "UIT" | "UWSL" | "UID" | "CLUB";
+/**
+ * All seven of the university's schools, plus student clubs.
+ *
+ * `CLUB` is not a school — it is where a society's own event goes when it
+ * belongs to no faculty. Kept in the same list because the directory filters on
+ * one axis, and "whose event is this" is that axis.
+ *
+ * Order is deliberate and is what every list in the product renders in: the
+ * schools alphabetically by code, then CLUB last. A list this long re-sorted
+ * per screen is a list nobody can scan twice.
+ */
+export type EventTrack =
+  | "KSD"
+  | "KSR"
+  | "UID"
+  | "UIT"
+  | "USLM"
+  | "UWSB"
+  | "UWSL"
+  | "CLUB";
+
+/** Canonical render order. Iterate this rather than `Object.keys`. */
+export const TRACKS: readonly EventTrack[] = [
+  "KSD",
+  "KSR",
+  "UID",
+  "UIT",
+  "USLM",
+  "UWSB",
+  "UWSL",
+  "CLUB",
+] as const;
 
 export const TRACK_LABELS: Record<EventTrack, string> = {
-  UIT: "UIT",
-  UWSL: "UWSL",
+  KSD: "KSD",
+  KSR: "KSR",
   UID: "UID",
+  UIT: "UIT",
+  USLM: "USLM",
+  UWSB: "UWSB",
+  UWSL: "UWSL",
   CLUB: "Student Clubs",
 };
 
 export const TRACK_FULL_NAMES: Record<EventTrack, string> = {
-  UIT: "Unitedworld Institute of Technology",
-  UWSL: "Unitedworld School of Law",
+  KSD: "Karnavati School of Dentistry",
+  KSR: "Karnavati School of Research",
   UID: "Unitedworld Institute of Design",
+  UIT: "Unitedworld Institute of Technology",
+  USLM: "Unitedworld School of Liberal Arts & Mass Communication",
+  UWSB: "Unitedworld School of Business",
+  UWSL: "Unitedworld School of Law",
   CLUB: "Student Clubs & Societies",
 };
 

@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "@/lib/auth-context";
 import { fetchMyTickets, fetchPublishedEvents } from "@/lib/firestore-queries";
-import { TRACK_LABELS, type EventDoc, type EventTrack, type TicketDoc } from "@/lib/types";
+import { TRACKS, TRACK_LABELS, type EventDoc, type EventTrack, type TicketDoc } from "@/lib/types";
 import { EventCard } from "@/components/events/event-card";
 import { EventExpand } from "@/components/events/event-expand";
 import { Reveal } from "@/components/motion/reveal";
@@ -46,12 +46,23 @@ const GRID_CLASS = "grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
 /** Mirrors GRID_CLASS: 15rem once four columns lock in, viewport-relative below. */
 const CARD_SIZES = "(min-width: 1024px) 15rem, (min-width: 640px) 30vw, 45vw";
 
+/*
+ * Derived from TRACKS, not listed here.
+ *
+ * The hardcoded version silently omitted four of the university's seven
+ * schools when they were added to the type - nothing failed to compile, the
+ * filters just quietly could not reach KSD, KSR, USLM or UWSB. Deriving means
+ * an eighth school appears here the moment it exists.
+ */
 const TABS: { value: TabValue; label: string }[] = [
   { value: "ALL", label: "All" },
-  { value: "UIT", label: TRACK_LABELS.UIT },
-  { value: "UWSL", label: TRACK_LABELS.UWSL },
-  { value: "UID", label: TRACK_LABELS.UID },
-  { value: "CLUB", label: TRACK_LABELS.CLUB },
+  ...TRACKS.map((track) => ({
+    value: track as TabValue,
+    // "Student Clubs" is the only multi-word label among eight four-letter
+    // codes, and on a phone it alone pushed the filter row onto a third line.
+    // The full name still lives in TRACK_FULL_NAMES for the footer's tooltips.
+    label: track === "CLUB" ? "Clubs" : TRACK_LABELS[track],
+  })),
 ];
 
 export function EventDirectory() {
