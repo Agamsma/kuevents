@@ -159,7 +159,7 @@ export function AttendeeList({ eventId }: { eventId: string }) {
             This event does not exist, or it has been taken down.
           </p>
           <Button variant="outline" asChild>
-            <Link href="/organizer">
+            <Link href="/staff?tab=events">
               <ArrowLeft className="size-4" />
               Your events
             </Link>
@@ -172,7 +172,7 @@ export function AttendeeList({ eventId }: { eventId: string }) {
   return (
     <AppShell theme="paper">
       <Link
-        href="/organizer"
+        href="/staff?tab=events"
         className="mb-6 inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-subtle-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-3" />

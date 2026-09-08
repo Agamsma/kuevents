@@ -173,7 +173,7 @@ export function EventDetail({ eventId }: { eventId: string }) {
               </h1>
               {event.status === "live" ? (
                 <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-ku-red/30 bg-ku-red/[0.07] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-ku-red">
-                  <span className="animate-live-pulse size-1.5 rounded-full bg-gold" />
+                  <span className="animate-live-pulse size-1.5 rounded-full bg-current" />
                   Happening now
                 </span>
               ) : null}

@@ -178,7 +178,7 @@ function Overview({
 
           <div className="flex h-[4.5rem] items-center gap-2 px-5">
             <Button size="sm" variant="outline" asChild>
-              <Link href={`/organizer/${upcoming.id}`}>
+              <Link href={`/staff/events/${upcoming.id}`}>
                 <Ticket className="size-3.5" />
                 Attendees
               </Link>

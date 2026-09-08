@@ -253,7 +253,7 @@ function ManagedEvent({
     >
       <div className="px-5 pb-5 pt-5">
         <div className="flex items-start justify-between gap-3">
-          <Link href={`/organizer/${event.id}`} className="min-w-0 group">
+          <Link href={`/staff/events/${event.id}`} className="min-w-0 group">
             <h2 className="display truncate text-[1.3rem] text-foreground transition-colors group-hover:text-primary">
               {event.title}
             </h2>
@@ -310,7 +310,7 @@ function ManagedEvent({
 
       <div className="flex h-[3.75rem] items-center gap-2 px-5">
         <Button size="sm" variant="outline" asChild>
-          <Link href={`/organizer/${event.id}`}>
+          <Link href={`/staff/events/${event.id}`}>
             <Users className="size-3.5" />
             Attendees
           </Link>

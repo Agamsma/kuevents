@@ -87,6 +87,39 @@ export default function proxy(request: NextRequest) {
   response.headers.set("X-Frame-Options", "DENY");
 
   /*
+   * Content-Security-Policy — the directives that hold without nonces.
+   *
+   * Deliberately incomplete, and worth being honest about why. A real
+   * `script-src` needs a per-request nonce threaded through Next's inline
+   * bootstrap scripts; anything less is `'unsafe-inline'`, which is a CSP that
+   * looks like protection and provides almost none. That is a separate piece of
+   * work, not something to half-do here.
+   *
+   * What is set below still closes real holes and cannot break the app:
+   *
+   *   object-src 'none'      — no Flash/applet embedding, an old XSS vector
+   *   base-uri 'self'        — stops an injected <base> silently repointing
+   *                            every relative URL on the page, including the
+   *                            script Next loads its chunks from
+   *   form-action 'self'     — an injected form cannot POST the page's fields
+   *                            to another origin
+   *   frame-ancestors 'none' — the modern X-Frame-Options; that header is
+   *                            ignored by browsers that honour this one
+   *   upgrade-insecure-requests — no mixed content on a page that opens a
+   *                            camera and handles ID tokens
+   */
+  response.headers.set(
+    "Content-Security-Policy",
+    [
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+      "upgrade-insecure-requests",
+    ].join("; "),
+  );
+
+  /*
    * Sign-in is a popup, and this is the header that decides whether it works.
    *
    * `signInWithPopup` opens accounts.google.com and then polls `popup.closed`
