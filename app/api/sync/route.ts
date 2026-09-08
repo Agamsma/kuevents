@@ -62,14 +62,28 @@ export const POST = apiRoute("sync", async (request) => {
     "superadmin",
   ]);
 
-  // Optional second factor for gate devices: a shared key configured on the
-  // scanner build. Skipped entirely when SYNC_API_KEY is unset.
-  const requiredKey = process.env.SYNC_API_KEY;
-  if (requiredKey && requiredKey !== "change-me-to-a-long-random-string") {
-    if (request.headers.get("x-ku-sync-key") !== requiredKey) {
-      throw new ApiError("Bad sync key.", 403);
-    }
-  }
+  /*
+   * The shared-key check that used to sit here has been removed, and it should
+   * not come back in this shape.
+   *
+   * It required an `x-ku-sync-key` header. The gate is a web app, and
+   * `lib/sync-client.ts` never sent one — so the moment anybody followed the
+   * README's own instruction to set SYNC_API_KEY to "any long random string",
+   * every upload from every gate device answered 403 and check-ins queued
+   * forever. Silently: the outbox retries, so nothing was lost, but nothing
+   * arrived either.
+   *
+   * It could not have worked. For a browser client to send that header the key
+   * would have to be NEXT_PUBLIC_, which puts it in the JavaScript bundle that
+   * every student downloads — a "shared secret" readable by anyone who opens
+   * devtools is not a second factor.
+   *
+   * What actually guards this route is the line above: a verified Firebase ID
+   * token whose `users` document carries scanner, organizer or superadmin, re-
+   * read on every request. If a native gate client is ever built, a per-device
+   * credential belongs here — issued per device, revocable, and never the same
+   * string on every phone.
+   */
 
   const body = await readJson<SyncRequestBody>(request);
 

@@ -23,7 +23,6 @@ filling before anything can be booked, proposed or synced:
 | --- | --- | --- |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | Admin SDK credentials, JSON on one line | Firebase console → Project settings → Service accounts → Generate new private key |
 | `TICKET_QR_SECRET` | HMAC key for ticket QR codes | Any long random string. **Rotating it invalidates every QR already issued.** |
-| `SYNC_API_KEY` | Optional shared key for gate devices | Any long random string, or leave as-is to disable the check |
 
 > No payment gateway is wired up. Every event is free.
 
@@ -37,7 +36,7 @@ promote themselves. The first one has to be set out of band:
 Firestore → `users` → your document and set `role` to `superadmin`.
 
 **Option B — the seed script.** Needs `FIREBASE_SERVICE_ACCOUNT_KEY`. Also
-creates four sample events across all four tracks:
+creates eight sample events, one per school plus student clubs:
 
 ```bash
 npm run seed -- you@karnavatiuniversity.edu.in
@@ -49,7 +48,7 @@ Then deploy the rules:
 firebase deploy --only firestore:rules,storage
 ```
 
-Once you are super admin, everyone else gets promoted from `/admin`.
+Once you are super admin, everyone else gets promoted from `/staff/people`.
 
 ### Scripts
 
@@ -112,7 +111,7 @@ Drop the override once `jwks-rsa` switches to a dynamic `import()`. Until then,
 | `student` | Browse the directory, reserve passes, **propose events** |
 | `scanner` | The above, plus run the gate scanner |
 | `organizer` | The above, plus review proposals, publish events, see attendees |
-| `superadmin` | The above, plus assign roles at `/admin` |
+| `superadmin` | The above, plus assign roles at `/staff/people` |
 
 Roles are read from the `users` document on **every** API request rather than
 from a token claim, so an organizer demoted mid-event loses access on their next
@@ -123,7 +122,7 @@ request instead of an hour later when their token expires.
 ```
 student fills /events/request
         ↓  POST /api/events/propose  →  status: "pending", organizer_uid: null
-organizer opens /dashboard/requests
+organizer opens /staff (review tab)
         ↓  approve → status: "published", and the approver becomes organizer_uid
         ↓  reject  → status: "rejected", kept on record with a written reason
 published events appear on the directory; students reserve passes
@@ -150,11 +149,11 @@ app/
   events/request/            multi-step proposal form
   tickets/                   your passes
   tickets/[ticketId]/        the digital pass
-  dashboard/requests/        organizer approval board
-  organizer/                 event management
-  organizer/[eventId]/       attendee list + CSV export
-  admin/                     super admin: people & roles
-  scanner/                   the gate console
+  staff/                     staff console: review + event management
+  staff/events/[eventId]/    attendee list + CSV export
+  staff/people/              super admin: people & roles
+  staff/login/               staff front door (signage, not a lock)
+  scanner/                   the gate console, no chrome
   api/events/                create + lifecycle transitions
   api/events/propose/        student proposals
   api/admin/users/           list + assign roles (superadmin only)
