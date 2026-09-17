@@ -75,7 +75,8 @@ export function DashboardShell({
   const tab = controlledTab;
 
   return (
-    <div data-theme="paper" className="min-h-dvh bg-paper text-ink">
+    // `isolate` is load-bearing — see the note in <AmbientPaper>.
+    <div data-theme="paper" className="isolate min-h-dvh bg-paper text-ink">
       <AmbientPaper />
       <StaffHeader />
 

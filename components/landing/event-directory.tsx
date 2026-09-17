@@ -306,8 +306,16 @@ function EmptyTrack({ track }: { track: TabValue }) {
   return (
     <Stub notched className="px-6 py-16 text-center">
       <div className="mx-auto max-w-sm">
+        {/*
+          "Nothing coming up", not "Nothing published yet". The list is now
+          date-filtered, so an empty directory on a campus with a full archive
+          is the normal state between terms — and telling those organizers
+          nothing of theirs was ever published is both wrong and discouraging.
+        */}
         <div className="display text-[1.5rem] text-ink">
-          {track === "ALL" ? "Nothing published yet" : `Nothing from ${TRACK_LABELS[track as EventTrack]} yet`}
+          {track === "ALL"
+            ? "Nothing coming up"
+            : `Nothing coming up from ${TRACK_LABELS[track as EventTrack]}`}
         </div>
         <p className="mt-2.5 text-sm leading-relaxed text-ink-dim">
           Got something in mind? Anyone on campus can propose an event — an

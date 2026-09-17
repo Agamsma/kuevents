@@ -15,11 +15,24 @@
  * on the server and ships zero JavaScript. The motion is entirely CSS, which is
  * also what lets `prefers-reduced-motion` switch it off through the global rule
  * rather than through a hook.
+ *
+ * ── Its parent MUST create a stacking context ──────────────────────────────
+ *
+ * This layer is `-z-10`, and every surface it sits on carries `bg-paper`. Where
+ * the parent forms no stacking context, a negative-z child paints in step 2 of
+ * the ROOT's order — before in-flow block backgrounds — so `bg-paper` covers it
+ * and none of this is ever seen. That is exactly what was happening on all
+ * three shells: the resting heartbeat had never once been visible.
+ *
+ * `isolate` on the parent fixes it by making the parent the stacking context:
+ * its own background paints first, then this. Hence `requires-isolate` below —
+ * it is a marker for a grep, not a style.
  */
 export function AmbientPaper() {
   return (
     <div
       aria-hidden
+      data-requires-isolate
       className="pointer-events-none fixed inset-0 -z-10 overflow-hidden"
     >
       {/* Warm light from the upper left, the way a page sits near a window. */}

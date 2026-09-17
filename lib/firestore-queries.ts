@@ -12,7 +12,7 @@ import {
 
 import { db } from "@/lib/firebase";
 import { toMillis } from "@/lib/format";
-import type { EventDoc, TicketDoc } from "@/lib/types";
+import { isOn, type EventDoc, type TicketDoc } from "@/lib/types";
 
 /**
  * Client-side reads, deliberately shaped to need **no composite indexes**.
@@ -72,8 +72,16 @@ export async function fetchPublishedEvents(): Promise<EventDoc[]> {
     query(collection(db, "events"), where("status", "==", "published")),
   );
 
+  // Date-filtered in memory rather than in the query, for the same reason the
+  // status filter stands alone: a `where("ends_at", ">", now)` beside the
+  // status equality needs a deployed composite index, and a directory that
+  // 500s because nobody ran `firebase deploy --only firestore:indexes` is a bad
+  // way to find that out.
+  const now = Date.now();
+
   return snap.docs
     .map((d) => normaliseEvent(d.id, d.data()))
+    .filter((event) => isOn(event, now))
     .sort((a, b) => a.starts_at - b.starts_at);
 }
 

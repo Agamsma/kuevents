@@ -31,7 +31,8 @@ export function AppShell({
   return (
     <div
       data-theme={theme}
-      className={cn(theme === "paper" && "min-h-dvh bg-paper text-ink")}
+      // `isolate` is load-bearing — see the note in <AmbientPaper>.
+      className={cn(theme === "paper" && "isolate min-h-dvh bg-paper text-ink")}
     >
       {theme === "paper" ? <AmbientPaper /> : null}
       <SiteHeader />

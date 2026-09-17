@@ -161,6 +161,28 @@ export function categoryLabel(event: {
   return event.category_other?.trim() || "Other";
 }
 
+/**
+ * Whether an event still belongs on the calendar.
+ *
+ * Measured against `ends_at`, not `starts_at`. An event that began an hour ago
+ * and runs until midnight is the single most relevant thing on campus, and
+ * dropping it the moment it starts would take it off the directory exactly when
+ * people are deciding whether to walk over. It leaves when it is over.
+ *
+ * This exists because "published" and "on" had quietly become the same thing.
+ * Nothing filtered by date, so the directory — under a heading reading "What's
+ * coming up" — listed every event ever published, including ones from the
+ * previous term. The hero's own read DID filter, so the front page could show
+ * an empty-calendar notice directly above four cards for events that had
+ * already happened.
+ *
+ * Takes the loose shape rather than EventDoc so the public projection, which
+ * carries no status or ids, can use the same rule.
+ */
+export function isOn(event: { ends_at: number }, now: number = Date.now()): boolean {
+  return event.ends_at > now;
+}
+
 export interface EventDoc {
   id: string;
   title: string;

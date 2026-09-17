@@ -1,8 +1,7 @@
 import "server-only";
 
 import { adminDb } from "@/lib/firebase-admin";
-import { seatState } from "@/lib/seats";
-import type { EventDoc, EventTrack } from "@/lib/types";
+import { isOn, type EventDoc, type EventTrack } from "@/lib/types";
 
 /**
  * Server-side event reads and the public field allowlist.
@@ -72,34 +71,64 @@ export async function fetchPublicEvents(limit = 200): Promise<PublicEvent[]> {
     .limit(limit)
     .get();
 
+  // Over events, not upcoming ones, are dropped here — see `isOn`. A direct
+  // link to a finished event still resolves; it just stops being listed as
+  // something you could go to.
+  const now = Date.now();
+
   return snap.docs
     .map((doc) => project(doc.id, doc.data() as EventDoc))
+    .filter((event) => isOn(event, now))
     .sort((a, b) => a.starts_at - b.starts_at);
 }
 
-/**
- * The one to three events the hero puts a poster to.
- *
- * Soonest first, already started ones dropped, full ones dropped — a marquee
- * whose whole purpose is "go and get a seat" should not lead with something
- * nobody can get into.
- *
- * Never throws. The Admin SDK constructor fails hard when
- * FIREBASE_SERVICE_ACCOUNT_KEY is missing or malformed, and the landing page is
- * the one page that has to render for a stranger regardless. An empty array
- * puts the hero back on its static fallback, which is a page that still says
- * what the product is.
- */
-export async function fetchFeaturedEvents(count = 3): Promise<PublicEvent[]> {
-  try {
-    const events = await fetchPublicEvents();
-    const now = Date.now();
+/** What the landing page needs, in one read. */
+export interface LandingData {
+  /**
+   * Upcoming events for the hero's noticeboard, soonest first. The first is the
+   * one the wall features.
+   *
+   * Full events are NOT filtered out here, unlike `fetchFeaturedEvents`. The
+   * wall is a picture of what is on this month, not a list of things to book —
+   * an event everybody already got into still belongs on the board.
+   */
+  wall: PublicEvent[];
+  /** Upcoming published events in total. Printed on the hero, so it is real. */
+  upcoming: number;
+  /** How many distinct schools have something on. Also printed. */
+  schools: number;
+}
 
-    return events
-      .filter((event) => event.starts_at > now && !seatState(event).full)
-      .slice(0, count);
+const EMPTY_LANDING: LandingData = { wall: [], upcoming: 0, schools: 0 };
+
+/**
+ * The landing page's whole server read.
+ *
+ * Never throws, for the same reason `fetchFeaturedEvents` does not: the Admin
+ * SDK constructor fails hard on a missing or malformed
+ * FIREBASE_SERVICE_ACCOUNT_KEY, and the front door is the one page that has to
+ * render for a stranger regardless. Zeroes put the hero on its own empty state,
+ * which still says what the product is.
+ *
+ * The counts are derived from the same array the wall is built from rather than
+ * queried separately, so the number printed under the headline can never
+ * disagree with the bills pasted above it.
+ */
+export async function fetchLandingData(wallSize = 7): Promise<LandingData> {
+  try {
+    // Already date-filtered by `fetchPublicEvents`, so the hero and the
+    // directory below it are reading the same calendar through the same rule.
+    // They were not, which is how the front page came to show an
+    // empty-calendar notice above four cards.
+    const on = await fetchPublicEvents();
+
+    return {
+      wall: on.slice(0, wallSize),
+      upcoming: on.length,
+      schools: new Set(on.map((event) => event.track)).size,
+    };
   } catch (error) {
-    console.error("[featured events] failed", error);
-    return [];
+    console.error("[landing] failed", error);
+    return EMPTY_LANDING;
   }
 }
