@@ -31,7 +31,6 @@ import {
 import type { EventDoc, TicketDoc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, Perforation, Stub } from "@/components/ui/stub";
-import { PassLayer, Tilt } from "@/components/pass/tilt";
 
 interface PassData {
   ticket: TicketDoc;
@@ -236,18 +235,17 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
       </Link>
 
       <article className="animate-stub-in">
-        <Tilt>
         <Stub
           notched
           notchAt="calc(100% - 15.5rem)"
-          className="overflow-hidden shadow-[0_24px_60px_-20px_#1a141640] [transform-style:preserve-3d]"
+          className="overflow-hidden shadow-[0_24px_60px_-20px_#1a141640]"
         >
           {/* ── The half you keep ────────────────────────────────────────── */}
-          <div className="relative px-6 pb-7 pt-7 [transform-style:preserve-3d]">
+          <div className="relative px-6 pb-7 pt-7">
             {/*
               The flame rule. Gold left the palette with the move to paper, so
               the one warm mark across the top of the pass is the emblem’s own
-              gradient instead — the same red-into-orange the foil sweeps.
+              red-into-orange gradient instead.
             */}
             <div
               className="absolute inset-x-0 top-0 h-[3px]"
@@ -259,17 +257,9 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
 
             <FieldLabel>Admit one · Karnavati University</FieldLabel>
 
-            {/*
-              The title rides highest of the printed matter. Depths climb with
-              importance — label on the surface, title above it, QR proudest of
-              all — so tilting the pass sorts it by what matters rather than
-              just rotating a picture.
-            */}
-            <PassLayer z={26}>
-              <h1 className="display mt-3 text-[1.9rem] leading-[1.05] text-ink">
-                {event?.title ?? "Event"}
-              </h1>
-            </PassLayer>
+            <h1 className="display mt-3 text-[1.9rem] leading-[1.05] text-ink">
+              {event?.title ?? "Event"}
+            </h1>
 
             <div className="mt-7 grid grid-cols-2 gap-x-4 gap-y-6">
               <Field label="Attendee" value={ticket.user_name} className="col-span-2" />
@@ -293,7 +283,7 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
           <Perforation className="mx-6" />
 
           {/* ── The half the gate takes ──────────────────────────────────── */}
-          <div className="flex flex-col items-center gap-4 px-6 pb-7 pt-7 [transform-style:preserve-3d]">
+          <div className="flex flex-col items-center gap-4 px-6 pb-7 pt-7">
             {isVoid ? (
               <div className="flex w-full items-center gap-2.5 rounded-md border border-refuse/30 bg-refuse/[0.08] px-3.5 py-2.5 text-[13px] font-medium text-refuse">
                 <AlertTriangle className="size-4 shrink-0" />
@@ -312,21 +302,14 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
             )}
 
             {/*
-             * `relative z-10` lifts the QR above the foil.
-             *
-             * The foil is painted last inside <Tilt>, so without this it sweeps
-             * a warm gradient straight across the code. Caught on a phone
-             * viewport, where it was plainly tinting the modules. A decorative
-             * overlay that lowers contrast on the one element the entire
-             * product depends on scanning — offline, at a gate, on a marshal's
-             * cheap camera — is not a trade worth making for a highlight.
-             *
-             * `bg-[#ffffff]` rather than `bg-bone`: the quiet zone around a QR
-             * must be the brightest thing available, and --bone is a warm
-             * off-white tuned for the dark ground.
-             */
-            }
-            <PassLayer z={42} className="relative z-10">
+              Nothing is painted over this, and nothing moves it.
+
+              The pass used to tilt in 3D with a foil sweep across it. Both are
+              gone: on a phone the tilt was driven by the gyroscope, so the card
+              moved while it was being held up to a gate camera — a QR that
+              skews as it is read is a QR that decodes slowly or not at all. The
+              one screen whose job is to be scanned should hold still.
+            */}
             <div
               className={
                 isVoid
@@ -349,14 +332,12 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
                 style={{ height: "auto", maxWidth: "100%", width: "176px" }}
               />
             </div>
-            </PassLayer>
 
             <div className="w-full text-center font-mono text-[9px] tracking-[0.14em] text-ink-soft">
               {ticket.id}
             </div>
           </div>
         </Stub>
-        </Tilt>
       </article>
 
       <p className="mx-auto mt-6 max-w-[19rem] text-center text-[11px] leading-relaxed text-ink-soft">
