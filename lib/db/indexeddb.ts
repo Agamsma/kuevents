@@ -259,6 +259,21 @@ export async function searchRoster(
   const needle = term.trim().toLowerCase();
   if (needle.length < 2) return [];
 
+  /*
+   * Every match, then sort, then cut — in that order.
+   *
+   * This used to carry `.limit(limit)` on the query, which made Dexie stop
+   * reading after the first 12 matches in primary-key order. The sort below
+   * then reordered those 12 and nothing else, so at a busy gate — where most of
+   * the roster is already admitted — a common surname could fill the cut with
+   * twelve people who were already inside, and the one person still standing at
+   * the door was never in the array to be promoted. Exactly the case the manual
+   * fallback exists for.
+   *
+   * The scan is now the whole roster per keystroke. That is what the in-memory
+   * filter above already implied, and a few thousand rows on an idle phone is
+   * nothing next to turning away someone holding a valid pass.
+   */
   const matches = await gateDb.cached_tickets
     .where("event_id")
     .equals(eventId)
@@ -268,11 +283,10 @@ export async function searchRoster(
         ticket.user_email.toLowerCase().includes(needle) ||
         ticket.ticket_id.toLowerCase().endsWith(needle),
     )
-    .limit(limit)
     .toArray();
 
   // People still outside first — they are who the marshal is looking for.
-  return matches.sort((a, b) => a.checked_in - b.checked_in);
+  return matches.sort((a, b) => a.checked_in - b.checked_in).slice(0, limit);
 }
 
 /** Claims up to `limit` pending scans, marking them in-flight. */

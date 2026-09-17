@@ -276,6 +276,45 @@ describe("roster search", () => {
       "the marshal is looking for whoever is still at the door",
     );
   });
+
+  test("finds the one person still outside past a full page of admitted ones", async () => {
+    /*
+     * The case that broke: a common surname at a gate that is mostly through.
+     *
+     * The query used to cut to `limit` BEFORE the sort ran, and it read in
+     * primary-key order — so twenty admitted Shahs filled the cut and the one
+     * still at the door was never in the array for the sort to promote. The
+     * marshal searched a name that is plainly on the roster and got told, in
+     * effect, that everyone by that name was already inside.
+     *
+     * Hashes are ordered so the person still outside sorts LAST by primary key,
+     * which is what puts them outside the old cut.
+     */
+    const admitted = Array.from({ length: 20 }, (_, i) =>
+      ticket({
+        qr_hash: `${i}`.padStart(2, "0").repeat(32),
+        ticket_id: `tkt_in_${i}`,
+        user_name: `Shah, Admitted ${i}`,
+      }),
+    );
+
+    const stillOutside = ticket({
+      qr_hash: "f".repeat(64),
+      ticket_id: "tkt_waiting",
+      user_name: "Shah, Waiting",
+    });
+
+    await seed([...admitted, stillOutside]);
+    for (const row of admitted) await scan(row.qr_hash);
+
+    const results = await searchRoster(EVENT, "shah");
+    assert.equal(
+      results[0].user_name,
+      "Shah, Waiting",
+      "the only person still at the door must survive the cut, not be truncated out of it",
+    );
+    assert.equal(results.length, 12, "still capped at the default limit");
+  });
 });
 
 describe("roster counters", () => {

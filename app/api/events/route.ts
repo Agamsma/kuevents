@@ -119,11 +119,27 @@ export const PATCH = apiRoute("events patch", async (request) => {
     throw new ApiError("That is not your event.", 403);
   }
 
-  const update: Record<string, unknown> = {
-    status: nextStatus,
-    reviewed_by: caller.uid,
-    reviewed_at: Date.now(),
-  };
+  const update: Record<string, unknown> = { status: nextStatus };
+
+  /*
+   * The review stamp records a DECISION, so only a real transition writes it.
+   *
+   * It used to be set on every PATCH. Pausing bookings sends the event's
+   * current status back unchanged - there is no pause-only endpoint - so every
+   * pause and every resume rewrote `reviewed_by` and `reviewed_at`. Two things
+   * broke quietly:
+   *
+   *   - the proposer's own page prints that timestamp under "What the organizer
+   *     said" (my-proposals.tsx), so the moment an organizer paused bookings
+   *     months later, the student's rejection appeared to have been decided
+   *     that afternoon
+   *   - `reviewed_by` decayed from "who approved this" into "who touched it
+   *     last", which is the one field a disputed approval would be settled with
+   */
+  if (nextStatus !== event.status) {
+    update.reviewed_by = caller.uid;
+    update.reviewed_at = Date.now();
+  }
 
   /*
    * Pausing is separate from the status transition, and may be sent on its own.
