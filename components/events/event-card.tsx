@@ -70,6 +70,7 @@ export function EventCard({
   onExpand?: () => void;
 }) {
   const { seatsLeft, full, low } = seatState(event);
+  const hasArt = Boolean(event.cover_image_url);
 
   return (
     <motion.article
@@ -103,15 +104,6 @@ export function EventCard({
         className="group block h-full transition-transform duration-150 active:scale-[0.985]"
       >
         {/*
-         * `data-theme="obsidian"` because the card is a poster, not a panel.
-         *
-         * The directory now sits on paper, but a poster is artwork with type
-         * set over it — a printed bill pinned to a white wall is still dark.
-         * Pinning the scale here keeps `.spotlight`, the chips, the torn foot
-         * and the seat states exactly as they were tuned, instead of forcing a
-         * scrim designed for a dark ground to also work as ink on white.
-         */}
-        {/*
           The shared element. This layoutId pairs with the expanded panel in
           event-expand.tsx, so the poster is physically the same element in both
           states and the card reads as opening rather than as a dialog arriving
@@ -119,76 +111,133 @@ export function EventCard({
         */}
         <motion.div layoutId={`poster-${event.id}`} className="h-full">
         <Stub
-          data-theme="obsidian"
-          className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-[color:var(--line-strong)] group-hover:shadow-[0_24px_50px_-24px_#00000059]"
+          /*
+           * The scale follows the artwork, and only the artwork.
+           *
+           * A card WITH a cover is a poster — artwork with type set over it —
+           * and a printed bill pinned to a white wall is still dark, so it
+           * keeps the obsidian scale that `.spotlight` and `chip-on-photo` were
+           * tuned against.
+           *
+           * A card WITHOUT one used to get the same dark treatment, filled with
+           * a maroon-to-ember gradient standing in for the missing image. On
+           * the paper directory that rendered as a near-black rectangle, and
+           * four of them in a row read as something failing to load rather than
+           * as a design. It is the same failure the hero had, for the same
+           * reason: dressing up "no artwork" as artwork.
+           *
+           * So it stops pretending. No cover means the card is a printed bill —
+           * ink on paper, the event's own words doing the work — which is the
+           * other real object this product is made of, and exactly what the
+           * hero's board does. Omitting the attribute inherits the page's
+           * scale, and every colour below is an alias, so both branches resolve
+           * correctly without a second set of tokens.
+           */
+          data-theme={hasArt ? "obsidian" : undefined}
+          className="flex h-full flex-col overflow-hidden transition-all duration-300 group-hover:-translate-y-1 group-hover:border-[color:var(--line-strong)] group-hover:shadow-[0_24px_50px_-24px_#0000003d]"
         >
-          {/* The poster. `.spotlight` is what keeps the type on it readable
-              over an arbitrary photo — see the derivation in globals.css. */}
-          <div className="poster spotlight relative shrink-0 bg-ash">
-            {event.cover_image_url ? (
+          {hasArt ? (
+            /* `.spotlight` is what keeps the type on an arbitrary photo
+               readable — see the derivation in globals.css. */
+            <div className="poster spotlight relative shrink-0 bg-ash">
               <Image
-                src={event.cover_image_url}
+                src={event.cover_image_url!}
                 alt=""
                 fill
                 sizes={sizes}
                 className="object-cover transition-transform duration-700 group-hover:scale-[1.04]"
               />
-            ) : (
-              <div
-                aria-hidden
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(160deg, var(--maroon) 0%, var(--ash) 55%, var(--ember) 100%)",
-                }}
-              />
-            )}
 
-            {/*
-              `chip-on-photo`, not `glass-strong`: these sit above the
-              spotlight's transparent top edge, so over a blown-out cover the
-              usual white-lift chip would vanish. See globals.css.
-            */}
-            <div className="absolute inset-x-0 top-0 z-10 flex flex-wrap gap-1.5 p-3">
-              <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-bone">
-                {TRACK_LABELS[event.track] ?? event.track}
-              </span>
-              <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
-                {categoryLabel(event)}
-              </span>
-            </div>
-
-            <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
               {/*
-                Not <FieldLabel>: `.field-label` is unlayered CSS, so its
-                bone-faint colour beats any Tailwind text utility passed
-                alongside it. Over a photo that is too dim to read, so the
-                stub vernacular is reproduced here at bone-dim instead.
+                `chip-on-photo`, not `glass-strong`: these sit above the
+                spotlight's transparent top edge, so over a blown-out cover the
+                usual white-lift chip would vanish. See globals.css.
               */}
-              <span className="block font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-bone-dim tabular">
-                {formatMonthAbbr(event.starts_at)} {formatDayNum(event.starts_at)}
-                {" · "}
-                {formatTime(event.starts_at)}
-              </span>
+              <div className="absolute inset-x-0 top-0 z-10 flex flex-wrap gap-1.5 p-3">
+                <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-bone">
+                  {TRACK_LABELS[event.track] ?? event.track}
+                </span>
+                <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
+                  {categoryLabel(event)}
+                </span>
+              </div>
 
-              <h3 className="display mt-1.5 line-clamp-2 text-[1.05rem] leading-tight text-bone">
+              <div className="absolute inset-x-0 bottom-0 z-10 p-3.5">
+                {/*
+                  Not <FieldLabel>: `.field-label` is unlayered CSS, so its
+                  colour beats any Tailwind text utility passed alongside it.
+                  Over a photo that is too dim to read, so the stub vernacular
+                  is reproduced here at bone-dim instead.
+                */}
+                <span className="block font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-bone-dim tabular">
+                  {formatMonthAbbr(event.starts_at)} {formatDayNum(event.starts_at)}
+                  {" · "}
+                  {formatTime(event.starts_at)}
+                </span>
+
+                <h3 className="display mt-1.5 line-clamp-2 text-[1.05rem] leading-tight text-bone">
+                  {event.title}
+                </h3>
+
+                {/*
+                  The pin inherits bone-dim rather than bone-faint like icons
+                  elsewhere. Measured over a blown-out white cover, the scrim
+                  leaves bone-faint at 2.31:1 — under the 3:1 floor for
+                  meaningful non-text content. bone-dim lands at 5.08:1. Icons
+                  on flat surfaces keep bone-faint; only ones over an arbitrary
+                  photo need this.
+                */}
+                <span className="mt-1.5 flex items-center gap-1.5 font-mono text-[10px] text-bone-dim">
+                  <MapPin className="size-3 shrink-0" />
+                  <span className="truncate">{event.venue}</span>
+                </span>
+              </div>
+            </div>
+          ) : (
+            /*
+              The printed bill. Same 2:3 block as the poster, so a mixed grid
+              stays even — a row where some cards carry art and some do not must
+              not step up and down.
+
+              No scrim and no image, so every value is an alias resolving
+              against the page's own scale. The chips become ruled outlines
+              rather than `chip-on-photo`, which is a dark lift designed to
+              survive a blown-out photograph and would be a grey smear here.
+            */
+            <div className="poster relative flex shrink-0 flex-col justify-between bg-paper-raised p-3.5">
+              <div className="flex flex-wrap gap-1.5">
+                <span className="rounded-full border border-[color:var(--line-strong)] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {TRACK_LABELS[event.track] ?? event.track}
+                </span>
+                <span className="rounded-full border border-[color:var(--line-strong)] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {categoryLabel(event)}
+                </span>
+              </div>
+
+              {/*
+                The title runs large here, unlike on a poster where it shares
+                the frame with a photograph. With nothing else in the block it
+                is the artwork, and setting it at poster size is the whole point
+                of the variant.
+              */}
+              <h3 className="display line-clamp-4 text-[1.45rem] leading-[1.08] text-foreground">
                 {event.title}
               </h3>
 
-              {/*
-                The pin inherits bone-dim rather than taking bone-faint like
-                icons elsewhere. Measured over a blown-out white cover, the
-                scrim leaves bone-faint at 2.31:1 — under the 3:1 floor for
-                meaningful non-text content. bone-dim lands at 5.08:1. Icons
-                on flat surfaces keep bone-faint; only ones over an arbitrary
-                photo need this.
-              */}
-              <span className="mt-1.5 flex items-center gap-1.5 font-mono text-[10px] text-bone-dim">
-                <MapPin className="size-3 shrink-0" />
-                <span className="truncate">{event.venue}</span>
-              </span>
+              <div>
+                <span className="block font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-subtle-foreground tabular">
+                  {formatMonthAbbr(event.starts_at)} {formatDayNum(event.starts_at)}
+                  {" · "}
+                  {formatTime(event.starts_at)}
+                </span>
+
+                <span className="mt-1.5 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+                  <MapPin className="size-3 shrink-0" />
+                  <span className="truncate">{event.venue}</span>
+                </span>
+              </div>
             </div>
-          </div>
+          )}
 
           {/*
             The torn foot. `stub-notched` with `--at: 0%` puts the punched
@@ -222,7 +271,13 @@ export function EventCard({
                 </span>
               )}
 
-              <ArrowUpRight className="size-4 shrink-0 text-bone-faint transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-crimson" />
+              {/*
+                Alias, not `text-bone-faint`, and `--primary` on hover rather
+                than `--crimson`: the foot now renders on either scale, and
+                crimson is the obsidian lift of KU Red that paper does not use —
+                on paper `--primary` is the university's actual #C02722.
+              */}
+              <ArrowUpRight className="size-4 shrink-0 text-subtle-foreground transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[color:var(--primary)]" />
             </div>
           </div>
         </Stub>

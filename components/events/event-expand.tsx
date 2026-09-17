@@ -9,6 +9,7 @@ import { ArrowRight, CalendarDays, MapPin, Users, X } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { seatState } from "@/lib/seats";
 import { SPRING } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 import { categoryLabel, TRACK_LABELS } from "@/lib/types";
 import type { EventCardEvent } from "@/components/events/event-card";
 import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
@@ -35,8 +36,11 @@ export type EventExpandEvent = EventCardEvent & {
  * a session. Booking still lives on the event page, behind the CTA, because
  * that path needs auth and a transaction and does not belong in a preview.
  *
- * The expanded panel keeps the obsidian scale, like the card it grew from: a
- * poster is artwork with type over it whichever size it happens to be.
+ * The panel takes its scale from the card it grew from, by the same rule: with
+ * a cover it is a poster and stays obsidian, without one it is a printed bill
+ * and stays on paper. That has to match, because `layoutId` makes these two
+ * literally the same element — a card morphing from white into a black panel
+ * mid-flight is the one thing a shared-element transition must never do.
  */
 export function EventExpand({
   event,
@@ -45,6 +49,7 @@ export function EventExpand({
   event: EventExpandEvent | null;
   onClose: () => void;
 }) {
+  const hasArt = Boolean(event?.cover_image_url);
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -94,7 +99,7 @@ export function EventExpand({
             aria-modal="true"
             aria-label={event.title}
             transition={SPRING}
-            data-theme="obsidian"
+            data-theme={hasArt ? "obsidian" : undefined}
             className="relative z-10 max-h-[88dvh] w-full max-w-[26rem] overflow-y-auto overflow-x-hidden"
           >
             <Stub className="overflow-hidden">
@@ -106,46 +111,72 @@ export function EventExpand({
                 the artwork filling half the panel with black beside it — so the
                 box is sized directly and the image crops instead.
               */}
-              <div className="spotlight relative h-[34dvh] w-full overflow-hidden">
-                {event.cover_image_url ? (
+              <div
+                className={cn(
+                  "relative w-full overflow-hidden",
+                  // Only the poster needs the scrim, and only the poster needs
+                  // to be tall: without artwork the block is type on paper and
+                  // a third of the viewport of empty sheet is just a gap.
+                  hasArt ? "spotlight h-[34dvh]" : "px-5 pb-1 pt-5",
+                )}
+              >
+                {hasArt ? (
                   <Image
-                    src={event.cover_image_url}
+                    src={event.cover_image_url!}
                     alt=""
                     fill
                     sizes="26rem"
                     className="object-cover"
                   />
-                ) : (
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background:
-                        "linear-gradient(140deg, var(--maroon) 0%, var(--ash) 60%, var(--ember) 100%)",
-                    }}
-                  />
-                )}
+                ) : null}
 
                 <button
                   ref={closeRef}
                   type="button"
                   onClick={onClose}
                   aria-label="Close"
-                  className="chip-on-photo absolute right-3 top-3 z-20 grid size-8 place-items-center rounded-full text-bone"
+                  className={cn(
+                    "absolute right-3 top-3 z-20 grid size-8 place-items-center rounded-full",
+                    hasArt
+                      ? "chip-on-photo text-bone"
+                      : "border border-[color:var(--line-strong)] text-muted-foreground transition-colors hover:text-foreground",
+                  )}
                 >
                   <X className="size-4" />
                 </button>
 
-                <div className="absolute inset-x-0 top-0 z-10 flex gap-1.5 p-3">
-                  <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-bone">
+                <div
+                  className={cn(
+                    "flex gap-1.5",
+                    hasArt ? "absolute inset-x-0 top-0 z-10 p-3" : "pr-10",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em]",
+                      hasArt
+                        ? "chip-on-photo text-bone"
+                        : "border border-[color:var(--line-strong)] text-muted-foreground",
+                    )}
+                  >
                     {TRACK_LABELS[event.track] ?? event.track}
                   </span>
-                  <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
+                  <span
+                    className={cn(
+                      "rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em]",
+                      hasArt
+                        ? "chip-on-photo text-gold"
+                        : "border border-[color:var(--line-strong)] text-muted-foreground",
+                    )}
+                  >
                     {categoryLabel(event)}
                   </span>
                 </div>
 
-                <div className="absolute inset-x-0 bottom-0 z-10 p-4">
-                  <h2 className="display text-[1.5rem] leading-tight text-bone">
+                <div
+                  className={cn(hasArt ? "absolute inset-x-0 bottom-0 z-10 p-4" : "mt-4")}
+                >
+                  <h2 className="display text-[1.5rem] leading-tight text-foreground">
                     {event.title}
                   </h2>
                 </div>
@@ -157,15 +188,15 @@ export function EventExpand({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <FieldLabel>Doors</FieldLabel>
-                    <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[12px] text-bone">
-                      <CalendarDays className="size-3 shrink-0 text-bone-faint" />
+                    <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[12px] text-foreground">
+                      <CalendarDays className="size-3 shrink-0 text-subtle-foreground" />
                       {formatDateTime(event.starts_at)}
                     </div>
                   </div>
                   <div className="min-w-0">
                     <FieldLabel>Venue</FieldLabel>
-                    <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[12px] text-bone">
-                      <MapPin className="size-3 shrink-0 text-bone-faint" />
+                    <div className="mt-1.5 flex items-center gap-1.5 font-mono text-[12px] text-foreground">
+                      <MapPin className="size-3 shrink-0 text-subtle-foreground" />
                       <span className="truncate">{event.venue}</span>
                     </div>
                   </div>
@@ -174,7 +205,7 @@ export function EventExpand({
                 {event.description ? (
                   <div>
                     <FieldLabel>About</FieldLabel>
-                    <p className="mt-1.5 max-h-32 overflow-auto text-[13px] leading-relaxed text-bone-dim">
+                    <p className="mt-1.5 max-h-32 overflow-auto text-[13px] leading-relaxed text-muted-foreground">
                       {event.description}
                     </p>
                   </div>
@@ -184,7 +215,16 @@ export function EventExpand({
 
                 <Link
                   href={`/events/${event.id}`}
-                  className="group flex h-11 w-full items-center justify-center gap-2 rounded-full bg-crimson text-[14px] font-semibold text-[#1a0207] transition-transform active:scale-[0.98]"
+                  /*
+                    The aliases, not `bg-crimson`. Crimson is the obsidian LIFT
+                    of KU Red, needed because #C02722 only measures 3.40:1 on
+                    the dark ground — on paper the university's actual red
+                    passes AA unmodified, and `--primary` already resolves to
+                    the right one on each. `--primary-foreground` follows it, so
+                    the label stays legible either way rather than being pinned
+                    to the near-black that only works under crimson.
+                  */
+                  className="group flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[color:var(--primary)] text-[14px] font-semibold text-[color:var(--primary-foreground)] transition-transform active:scale-[0.98]"
                 >
                   Get your pass
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
