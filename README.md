@@ -300,15 +300,26 @@ automatic single-field indexes. See `lib/firestore-queries.ts` for why.
 
 ## Known gaps
 
-- **The attendee list and approval board are snapshots**, not live feeds. Both
-  read once and refresh on demand. A Firestore `onSnapshot` subscription would
-  make them tick by themselves, which is worth doing before a real event.
-- **Two organizers can open the same proposal.** Whoever decides first wins and
-  the row leaves the other's queue only on their next load. A `reviewing_by`
-  lease would close it; at the volume of one university's proposals, it has not
-  been worth the complexity.
 - **No email notification** when a proposal is approved or rejected. The
   decision and its reason are stored on the event; nothing delivers them yet.
-- **Tests cover the offline scan logic only** — the part where a bug means
-  someone gets turned away at a real gate. API routes are typechecked and
-  manually exercised, not unit-tested.
+  This is the largest remaining gap — a student who is rejected finds out only
+  by revisiting `/proposals`.
+- **No route tests.** `lib/` is covered — the offline scan decision, the QR and
+  rotation maths, the payload validator, the JSON guarantee in `api-handler`,
+  and the contrast floors in `lib/theme.test.mts`, which reads the values
+  straight out of `globals.css` and fails the build if any drops below AA. The
+  API routes themselves are typechecked and manually exercised, not unit-tested,
+  because each one needs the Admin SDK and there is no emulator wired up.
+- **A finished event disappears from the directory rather than moving to an
+  archive.** `isOn` (in `lib/types.ts`) drops anything past its `ends_at` from
+  both public read paths. Direct links still resolve, so nothing is lost, but
+  there is no way to browse what already happened.
+
+### Recently closed
+
+- ~~The attendee list and approval board are snapshots~~ — both are live
+  `onSnapshot` feeds now (`subscribeEventTickets`, `subscribePendingEvents`).
+- ~~Two organizers can open the same proposal~~ — `PATCH /api/events` runs the
+  read, the ownership check and the write in one Firestore transaction, so the
+  loser of a race is retried, sees the winner's decision and gets a 409 naming
+  what happened instead of a silent last-write-wins.
