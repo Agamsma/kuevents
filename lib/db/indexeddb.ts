@@ -289,12 +289,41 @@ export async function searchRoster(
   return matches.sort((a, b) => a.checked_in - b.checked_in).slice(0, limit);
 }
 
-/** Claims up to `limit` pending scans, marking them in-flight. */
+/**
+ * How many failed uploads before a scan stops being offered to the automatic
+ * flush.
+ *
+ * At the 30s poll this is roughly four minutes of trying. High enough that a
+ * flaky gate wifi or a server restart never reaches it; low enough that a scan
+ * the server will NEVER accept stops holding the door shut.
+ */
+export const MAX_SYNC_ATTEMPTS = 8;
+
+/**
+ * Claims up to `limit` pending scans, marking them in-flight.
+ *
+ * Scans past `MAX_SYNC_ATTEMPTS` are skipped, and that is the point.
+ *
+ * `attempts` was being incremented by `releaseScans` and read by nothing. The
+ * outbox is claimed in primary-key order, so a single scan the server answers
+ * 400 to — one malformed row, one ticket id the payload validator rejects —
+ * sat at the head of the queue and failed the WHOLE batch forever. Every
+ * check-in taken after it queued behind it and never arrived, while the console
+ * reported them as "queued" and the design promised the outbox "retries and
+ * never drops work". It was retrying, and nothing was moving.
+ *
+ * Nothing is deleted. A blocked scan stays in the outbox, is counted by
+ * `blockedScanCount`, and is returned to the rotation by `retryBlockedScans`
+ * when a human presses sync.
+ */
 export async function claimPendingScans(limit = 200): Promise<QueuedScan[]> {
   return gateDb.transaction("rw", gateDb.sync_queue, async () => {
     const batch = await gateDb.sync_queue
       .where("in_flight")
       .equals(0)
+      // Before `.limit`, so a run of blocked rows cannot eat the batch and
+      // starve the healthy scans behind them.
+      .filter((scan) => scan.attempts < MAX_SYNC_ATTEMPTS)
       .limit(limit)
       .toArray();
 
@@ -346,6 +375,33 @@ export async function releaseScans(ids: number[]): Promise<void> {
 
 export async function pendingScanCount(): Promise<number> {
   return gateDb.sync_queue.count();
+}
+
+/**
+ * Scans the automatic flush has given up on. Included in `pendingScanCount`.
+ *
+ * Surfaced separately because the two numbers mean different things to whoever
+ * is holding the phone: "queued" resolves itself when signal returns, "stuck"
+ * never will, and somebody needs to know before the roster is reconciled after
+ * the event.
+ */
+export async function blockedScanCount(): Promise<number> {
+  return gateDb.sync_queue
+    .filter((scan) => scan.attempts >= MAX_SYNC_ATTEMPTS)
+    .count();
+}
+
+/**
+ * Puts blocked scans back into the rotation, for a human pressing sync.
+ *
+ * An automatic retry that has failed eight times should back off; a person
+ * deliberately asking should always get a real attempt. They may well have just
+ * fixed the thing that was breaking it.
+ */
+export async function retryBlockedScans(): Promise<number> {
+  return gateDb.sync_queue
+    .filter((scan) => scan.attempts >= MAX_SYNC_ATTEMPTS)
+    .modify({ attempts: 0 });
 }
 
 export interface RosterStats {

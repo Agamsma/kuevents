@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   CloudUpload,
   Download,
@@ -22,12 +23,14 @@ import { playError, playNeutral, playSuccess, primeAudio } from "@/lib/sound";
 import { flushSyncQueue, startAutoSync } from "@/lib/sync-client";
 import { formatDateTime } from "@/lib/format";
 import {
+  blockedScanCount,
   gateDb,
   getDeviceId,
   pendingScanCount,
   purgeEvent,
   replaceRoster,
   resolveScan,
+  retryBlockedScans,
   rosterStats,
   type CachedTicket,
   type RosterMeta,
@@ -78,6 +81,16 @@ export function ScannerConsole() {
   const [meta, setMeta] = useState<RosterMeta | null>(null);
   const [stats, setStats] = useState({ total: 0, checkedIn: 0 });
   const [pending, setPending] = useState(0);
+  /**
+   * Of `pending`, how many the automatic flush has given up on.
+   *
+   * Shown separately because the two mean different things to a marshal:
+   * "queued" resolves itself the moment signal returns, "stuck" never will.
+   * Without this the console reported a permanently jammed outbox as though it
+   * were merely waiting, which is how check-ins could fail to arrive all
+   * evening with nothing on screen saying so.
+   */
+  const [blocked, setBlocked] = useState(0);
   const [online, setOnline] = useState(true);
 
   const [cameraOn, setCameraOn] = useState(false);
@@ -109,6 +122,7 @@ export function ScannerConsole() {
 
   const refreshLocalState = useCallback(async (id: string | null) => {
     setPending(await pendingScanCount());
+    setBlocked(await blockedScanCount());
 
     if (!id) {
       setMeta(null);
@@ -308,8 +322,21 @@ export function ScannerConsole() {
   const manualSync = useCallback(async () => {
     setSyncing(true);
     try {
+      /*
+       * A person asking always gets a real attempt at everything.
+       *
+       * The automatic flush backs off a scan after MAX_SYNC_ATTEMPTS so one
+       * poison row cannot hold the queue shut. But somebody pressing this has
+       * usually just changed something — moved to where there is signal, or had
+       * the server fixed — and telling them "everything is synced" while rows
+       * sit blocked would be a lie in the one place the product cannot afford
+       * one.
+       */
+      await retryBlockedScans();
+
       const result = await flushSyncQueue(getIdToken);
       setPending(result.remaining);
+      setBlocked(await blockedScanCount());
 
       if (result.error === "offline") {
         toast.error("Still offline", {
@@ -400,6 +427,19 @@ export function ScannerConsole() {
           {pending > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-crimson/30 bg-crimson/[0.08] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-crimson tabular">
               {pending} queued
+            </span>
+          ) : null}
+
+          {/*
+            Refuse, not crimson. A queue is normal at an offline gate and says
+            "waiting"; this says "these are not going to arrive on their own",
+            which is the same register as a refused scan and wants the same
+            colour. Pressing sync clears it if anything can.
+          */}
+          {blocked > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-refuse/30 bg-refuse/[0.08] px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-refuse tabular">
+              <AlertTriangle className="size-3" />
+              {blocked} stuck
             </span>
           ) : null}
         </div>

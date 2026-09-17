@@ -18,10 +18,13 @@ import assert from "node:assert/strict";
 import { after, beforeEach, describe, test } from "node:test";
 
 import {
+  blockedScanCount,
   claimPendingScans,
   clearSyncedScans,
   gateDb,
+  MAX_SYNC_ATTEMPTS,
   pendingScanCount,
+  retryBlockedScans,
   purgeEvent,
   recoverStrandedScans,
   releaseScans,
@@ -400,6 +403,59 @@ describe("outbox", () => {
     await clearSyncedScans(batch.map((s) => s.id!));
 
     assert.equal(await pendingScanCount(), 0);
+  });
+
+  test("a scan the server will never accept stops blocking the ones behind it", async () => {
+    /*
+     * The failure this guards: `attempts` was incremented and read by nothing,
+     * so one row the server answers 400 to failed its whole batch forever. The
+     * outbox is claimed in key order, so every check-in taken afterwards queued
+     * behind it and never arrived - while the console still said "queued".
+     */
+    await seed([
+      ticket({ qr_hash: "a".repeat(64), ticket_id: "tkt_poison" }),
+      ticket({ qr_hash: "b".repeat(64), ticket_id: "tkt_good" }),
+    ]);
+    await scan("a".repeat(64));
+
+    // The poison row fails its way out of the rotation.
+    for (let i = 0; i < MAX_SYNC_ATTEMPTS; i += 1) {
+      const batch = await claimPendingScans();
+      await releaseScans(batch.map((s) => s.id!));
+    }
+
+    assert.equal(await blockedScanCount(), 1);
+    assert.equal(
+      (await claimPendingScans()).length,
+      0,
+      "a blocked scan must stop being offered to the automatic flush",
+    );
+
+    // A check-in taken after it must still get through.
+    await scan("b".repeat(64));
+    const batch = await claimPendingScans();
+
+    assert.equal(batch.length, 1, "the healthy scan must not be starved");
+    assert.equal(batch[0].ticket_id, "tkt_good");
+
+    // And nothing was thrown away.
+    assert.equal(await pendingScanCount(), 2);
+  });
+
+  test("a human pressing sync gets a real retry of the blocked ones", async () => {
+    await seed([ticket()]);
+    await scan("a".repeat(64));
+
+    for (let i = 0; i < MAX_SYNC_ATTEMPTS; i += 1) {
+      const batch = await claimPendingScans();
+      await releaseScans(batch.map((s) => s.id!));
+    }
+    assert.equal((await claimPendingScans()).length, 0);
+
+    // They may well have just fixed whatever was breaking it.
+    assert.equal(await retryBlockedScans(), 1);
+    assert.equal(await blockedScanCount(), 0);
+    assert.equal((await claimPendingScans()).length, 1);
   });
 
   test("purging an event clears its roster and its pending scans", async () => {
