@@ -1,9 +1,13 @@
+// Relative, with the extension, so `node --test` can load this directly: it
+// resolves neither the `@/` alias nor a bare specifier. Same reason
+// `lib/db/indexeddb.ts` imports `../constants.ts` rather than the alias.
 import {
+  CATEGORY_OTHER_MAX,
   EVENT_CATEGORIES,
   TRACK_LABELS,
   type EventCategory,
   type EventTrack,
-} from "@/lib/types";
+} from "./types.ts";
 
 /**
  * Validation for an event payload from an untrusted client.
@@ -27,6 +31,8 @@ export interface EventInput {
   ends_at: number;
   track: EventTrack;
   category: EventCategory;
+  /** The written category, or null unless `category` is `"Other"`. */
+  category_other: string | null;
   expected_footfall: number;
   capacity: number;
   cover_image_url: string | null;
@@ -88,6 +94,53 @@ export function parseEventInput(
     return { ok: false, error: "Pick a category." };
   }
 
+  /*
+   * The written category, validated here rather than trusted from the form.
+   *
+   * This string is printed on a public poster card, so it is the one field a
+   * proposer fully controls that a stranger reads. Three things hold:
+   *
+   *   - kept only when the category is actually "Other", so switching away
+   *     cannot leave a stray label behind on the card
+   *   - control characters stripped, including the newlines that would break a
+   *     single-line chip out of its box
+   *   - length-capped, so it cannot push a card's layout apart
+   *
+   * React escapes it on render, which is what stops it being markup. This is
+   * about the value being *sane*, not about it being *safe* — that is React's
+   * job and it does it whether or not this runs.
+   */
+  let categoryOther: string | null = null;
+  if (category === "Other") {
+    const raw =
+      typeof body.category_other === "string" ? body.category_other : "";
+
+    /*
+     * Control characters become a SPACE, not nothing.
+     *
+     * Dropping them joins the words either side: a label typed across two
+     * lines arrived as "Intercollege Meet". They are separators in the input,
+     * so they have to stay separators here — the collapse below then tidies
+     * the run of whitespace that leaves behind.
+     *
+     * Mapped by code point rather than by regex so this source file needs no
+     * literal control characters in it.
+     */
+    categoryOther = Array.from(raw)
+      .map((ch) => ((ch.codePointAt(0) ?? 0) >= 32 ? ch : " "))
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, CATEGORY_OTHER_MAX);
+
+    if (categoryOther.length < 2) {
+      return {
+        ok: false,
+        error: "Write what kind of event it is, or pick one of the categories.",
+      };
+    }
+  }
+
   const expectedFootfall = Math.max(0, Math.floor(Number(body.expected_footfall) || 0));
   const capacity = Math.max(0, Math.floor(Number(body.capacity) || 0));
 
@@ -113,6 +166,7 @@ export function parseEventInput(
       ends_at: endsAt,
       track,
       category,
+      category_other: categoryOther,
       expected_footfall: expectedFootfall,
       capacity,
       cover_image_url: coverImageUrl,

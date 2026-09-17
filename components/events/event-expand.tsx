@@ -9,7 +9,7 @@ import { ArrowRight, CalendarDays, MapPin, Users, X } from "lucide-react";
 import { formatDateTime } from "@/lib/format";
 import { seatState } from "@/lib/seats";
 import { SPRING } from "@/lib/motion";
-import { TRACK_LABELS } from "@/lib/types";
+import { categoryLabel, TRACK_LABELS } from "@/lib/types";
 import type { EventCardEvent } from "@/components/events/event-card";
 import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
 
@@ -140,7 +140,7 @@ export function EventExpand({
                     {TRACK_LABELS[event.track] ?? event.track}
                   </span>
                   <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
-                    {event.category}
+                    {categoryLabel(event)}
                   </span>
                 </div>
 

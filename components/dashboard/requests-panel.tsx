@@ -8,7 +8,7 @@ import { Check, Inbox, Loader2, MapPin, Users, X } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { subscribePendingEvents } from "@/lib/firestore-queries";
 import { formatDateTime, formatDayNum, formatMonthAbbr } from "@/lib/format";
-import { TRACK_LABELS, type EventDoc } from "@/lib/types";
+import { categoryLabel, TRACK_LABELS, type EventDoc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -226,7 +226,7 @@ function ProposalCard({
                   {TRACK_LABELS[event.track] ?? event.track}
                 </span>
                 <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
-                  {event.category}
+                  {categoryLabel(event)}
                 </span>
               </div>
             </div>
@@ -321,7 +321,7 @@ function ReviewDialog({
               {(
                 [
                   ["Running it", TRACK_LABELS[event.track] ?? event.track],
-                  ["Category", event.category],
+                  ["Category", categoryLabel(event)],
                   ["When", formatDateTime(event.starts_at)],
                   ["Until", formatDateTime(event.ends_at)],
                   ["Venue", event.venue],

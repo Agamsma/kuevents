@@ -14,7 +14,12 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { fetchMyProposals } from "@/lib/firestore-queries";
 import { formatDate, formatDateTime, formatTime } from "@/lib/format";
-import { TRACK_LABELS, type EventDoc, type EventStatus } from "@/lib/types";
+import {
+  categoryLabel,
+  TRACK_LABELS,
+  type EventDoc,
+  type EventStatus,
+} from "@/lib/types";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
@@ -205,7 +210,7 @@ function ProposalRow({ proposal, index }: { proposal: EventDoc; index: number })
                   {TRACK_LABELS[proposal.track] ?? proposal.track}
                 </span>
                 <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.12em] text-subtle-foreground">
-                  {proposal.category}
+                  {categoryLabel(proposal)}
                 </span>
               </div>
             </div>

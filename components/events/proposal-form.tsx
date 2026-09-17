@@ -18,6 +18,8 @@ import { useAuth } from "@/lib/auth-context";
 import { uploadEventCover, UploadError } from "@/lib/storage";
 import { formatDateTime } from "@/lib/format";
 import {
+  categoryLabel,
+  CATEGORY_OTHER_MAX,
   EVENT_CATEGORIES,
   TRACK_FULL_NAMES,
   TRACK_LABELS,
@@ -34,6 +36,8 @@ interface Draft {
   description: string;
   track: EventTrack | null;
   category: EventCategory | null;
+  /** Free text, used only when category is "Other". */
+  category_other: string;
   starts_at: string;
   duration_hours: string;
   venue: string;
@@ -47,6 +51,7 @@ const EMPTY: Draft = {
   description: "",
   track: null,
   category: null,
+  category_other: "",
   starts_at: "",
   duration_hours: "3",
   venue: "",
@@ -80,6 +85,13 @@ function validateStep(step: number, draft: Draft): Errors {
     }
     if (!draft.track) errors.track = "Pick who is running it.";
     if (!draft.category) errors.category = "Pick a category.";
+
+    // The server refuses this too. Checking here as well means the person is
+    // told while they are still looking at the field, rather than after a
+    // round trip on submit.
+    if (draft.category === "Other" && draft.category_other.trim().length < 2) {
+      errors.category_other = "Say what kind of event it is.";
+    }
   }
 
   if (step === 1) {
@@ -215,6 +227,7 @@ export function ProposalForm() {
           ends_at: startsAtMs + durationMs,
           track: draft.track,
           category: draft.category,
+          category_other: draft.category_other,
           expected_footfall: Number(draft.expected_footfall),
           capacity: 0,
           cover_image_url: coverUrl,
@@ -312,6 +325,24 @@ export function ProposalForm() {
                     error={errors.category}
                     options={EVENT_CATEGORIES.map((c) => ({ value: c, label: c }))}
                   />
+
+                  {/*
+                    Only when "Other" is chosen. Rendering it always would ask
+                    everyone to name a category they have already picked from a
+                    list, and leave a filled field behind when they switch back.
+                  */}
+                  {draft.category === "Other" ? (
+                    <TextField
+                      label="What kind of event?"
+                      name="category_other"
+                      value={draft.category_other}
+                      onChange={(e) => set("category_other", e.target.value)}
+                      error={errors.category_other}
+                      maxLength={CATEGORY_OTHER_MAX}
+                      hint={`This prints on the card, so keep it short — up to ${CATEGORY_OTHER_MAX} characters. For example "Alumni Meet" or "Blood Drive".`}
+                      autoFocus
+                    />
+                  ) : null}
 
                   <TextAreaField
                     label="What happens"
@@ -554,7 +585,18 @@ function ReviewStep({
   const rows: [string, string, number][] = [
     ["Title", draft.title || "—", 0],
     ["Running it", draft.track ? TRACK_LABELS[draft.track] : "—", 0],
-    ["Category", draft.category ?? "—", 0],
+    // The written label, not "Other" — this row is the last look someone gets
+    // at what they are sending, so it should read the way the card will.
+    [
+      "Category",
+      draft.category
+        ? categoryLabel({
+            category: draft.category,
+            category_other: draft.category_other,
+          })
+        : "—",
+      0,
+    ],
     ["Starts", startsAtMs ? formatDateTime(startsAtMs) : "—", 1],
     ["Runs for", `${draft.duration_hours} hours`, 1],
     ["Venue", draft.venue || "—", 1],

@@ -25,6 +25,8 @@ export interface PublicEvent {
   ends_at: number;
   track: EventTrack;
   category: string;
+  /** The written label, when category is "Other". Public: it prints on the card. */
+  category_other?: string | null;
   cover_image_url: string | null;
   capacity: number;
   tickets_issued: number;
@@ -48,6 +50,7 @@ function project(id: string, data: EventDoc): PublicEvent {
     ends_at: millis(data.ends_at),
     track: data.track,
     category: data.category,
+    category_other: data.category_other ?? null,
     cover_image_url: data.cover_image_url ?? null,
     capacity: data.capacity ?? 0,
     tickets_issued: data.tickets_issued ?? 0,

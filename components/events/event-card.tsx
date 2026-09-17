@@ -8,7 +8,12 @@ import { ArrowUpRight, MapPin, Users } from "lucide-react";
 import { formatDayNum, formatMonthAbbr, formatTime } from "@/lib/format";
 import { seatState } from "@/lib/seats";
 import { cn } from "@/lib/utils";
-import { TRACK_LABELS, type EventDoc, type TicketDoc } from "@/lib/types";
+import {
+  categoryLabel,
+  TRACK_LABELS,
+  type EventDoc,
+  type TicketDoc,
+} from "@/lib/types";
 import { Perforation, Stub } from "@/components/ui/stub";
 
 /**
@@ -39,6 +44,8 @@ export type EventCardEvent = Pick<
   "id" | "title" | "venue" | "starts_at" | "track" | "capacity"
 > & {
   category: string;
+  /** The written label, when category is "Other". */
+  category_other?: string | null;
   cover_image_url?: string | null;
   tickets_issued?: number | null;
 };
@@ -147,7 +154,7 @@ export function EventCard({
                 {TRACK_LABELS[event.track] ?? event.track}
               </span>
               <span className="chip-on-photo rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
-                {event.category}
+                {categoryLabel(event)}
               </span>
             </div>
 

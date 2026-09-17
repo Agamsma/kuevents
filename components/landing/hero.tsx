@@ -17,7 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { formatTime } from "@/lib/format";
 import { seatState } from "@/lib/seats";
 import { cn } from "@/lib/utils";
-import { TRACK_LABELS } from "@/lib/types";
+import { categoryLabel, TRACK_LABELS } from "@/lib/types";
 import type { PublicEvent } from "@/lib/events-server";
 import { Reveal, WordReveal } from "@/components/motion/reveal";
 import { Magnetic } from "@/components/motion/magnetic";
@@ -386,7 +386,7 @@ function FeaturedMarquee({
                     {TRACK_LABELS[event.track] ?? event.track}
                   </span>
                   <span className="glass-strong rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-gold">
-                    {event.category}
+                    {categoryLabel(event)}
                   </span>
                 </div>
 

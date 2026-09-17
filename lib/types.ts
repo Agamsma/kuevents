@@ -109,18 +109,57 @@ export const TRACK_FULL_NAMES: Record<EventTrack, string> = {
   CLUB: "Student Clubs & Societies",
 };
 
+/**
+ * Categories stay a closed union on purpose.
+ *
+ * Making them editable at runtime was considered and rejected: it would turn
+ * this into a plain `string`, and the compile-time exhaustiveness here is what
+ * catches a whole class of bug — when the university's four missing schools
+ * were added to `EventTrack`, the directory's hardcoded tab list silently
+ * omitted them and nothing failed to build. A closed union means the compiler
+ * finds every switch and every map that needs updating.
+ *
+ * `Other` is the escape hatch instead. It carries a free-text
+ * `category_other` label on the event, so a one-off event describes itself
+ * without anyone needing a deploy or an admin screen — and without the type
+ * losing its shape.
+ */
 export type EventCategory =
   | "Hackathon"
   | "Cultural"
   | "Workshop"
-  | "Unofficial";
+  | "Unofficial"
+  | "Other";
 
 export const EVENT_CATEGORIES: EventCategory[] = [
   "Hackathon",
   "Cultural",
   "Workshop",
   "Unofficial",
+  "Other",
 ];
+
+/** How long a free-text category may be. Long enough to name a thing, short
+ *  enough to fit the chip on a poster card without truncating. */
+export const CATEGORY_OTHER_MAX = 24;
+
+/**
+ * What a card should print for an event's category.
+ *
+ * One helper rather than the same ternary in the five places a category is
+ * rendered — a card, an expanded poster, the hero marquee, the roster and the
+ * review queue. Falls back to "Other" if the label is missing, so a malformed
+ * document renders a word rather than an empty chip.
+ */
+export function categoryLabel(event: {
+  // `string`, not `EventCategory`: the card types are structural and widen it,
+  // and this only ever compares against one literal.
+  category: string;
+  category_other?: string | null;
+}): string {
+  if (event.category !== "Other") return event.category;
+  return event.category_other?.trim() || "Other";
+}
 
 export interface EventDoc {
   id: string;
@@ -135,6 +174,14 @@ export interface EventDoc {
   status: EventStatus;
   track: EventTrack;
   category: EventCategory;
+  /**
+   * The written category, when `category` is `"Other"`.
+   *
+   * Ignored for every other category, so a proposer who picks "Other", types
+   * something, then switches back to "Workshop" does not leave a stray label
+   * behind on the card.
+   */
+  category_other?: string | null;
   /** What the proposer expects to turn up. Capacity is set on approval. */
   expected_footfall: number;
   capacity: number;

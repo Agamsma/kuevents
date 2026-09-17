@@ -8,6 +8,8 @@ import { useAuth } from "@/lib/auth-context";
 import { fetchAllEvents, fetchEventsByOrganizer } from "@/lib/firestore-queries";
 import { formatDate, formatTime } from "@/lib/format";
 import {
+  categoryLabel,
+  CATEGORY_OTHER_MAX,
   EVENT_CATEGORIES,
   TRACK_LABELS,
   type EventCategory,
@@ -352,7 +354,7 @@ function ManagedEvent({
           <div>
             <FieldLabel>Category</FieldLabel>
             <div className="mt-1.5 font-mono text-sm text-muted-foreground">
-              {event.category}
+              {categoryLabel(event)}
             </div>
           </div>
         </div>
@@ -435,6 +437,9 @@ function EventComposer({
 
     const startsAt = new Date(String(form.get("starts_at"))).getTime();
     const durationHours = Number(form.get("duration_hours")) || 3;
+    // Absent from the form unless "Other" is the chosen category, which is the
+    // only case the server reads it in.
+    const categoryOther = String(form.get("category_other") ?? "").trim();
 
     // Caught here so the person sees it next to the chips they missed, rather
     // than as a toast carrying the server's phrasing.
@@ -442,6 +447,17 @@ function EventComposer({
       toast.error("Almost there", {
         id: "org-create",
         description: !track ? "Pick who is running it." : "Pick a category.",
+      });
+      return;
+    }
+
+    // The server refuses this too. Checking here as well keeps the dialog from
+    // posting a payload it already knows is incomplete and then surfacing a 400
+    // naming a field the person has in front of them.
+    if (category === "Other" && categoryOther.length < 2) {
+      toast.error("Almost there", {
+        id: "org-create",
+        description: "Say what kind of event it is.",
       });
       return;
     }
@@ -465,6 +481,7 @@ function EventComposer({
           ends_at: startsAt + durationHours * 60 * 60 * 1000,
           track,
           category,
+          category_other: categoryOther,
           capacity: Number(form.get("capacity")) || 0,
           expected_footfall: Number(form.get("capacity")) || 0,
           cover_image_url: null,
@@ -548,6 +565,22 @@ function EventComposer({
             onChange={setCategory}
             options={EVENT_CATEGORIES.map((c) => ({ value: c, label: c }))}
           />
+
+          {/*
+            Only when "Other" is chosen, matching the proposal form. The chip
+            group above offers "Other", so without this the dialog can post a
+            category the server is obliged to refuse.
+          */}
+          {category === "Other" ? (
+            <Input
+              name="category_other"
+              label="What kind of event?"
+              required
+              maxLength={CATEGORY_OTHER_MAX}
+              placeholder="Alumni Meet"
+              hint={`Prints on the card — up to ${CATEGORY_OTHER_MAX} characters`}
+            />
+          ) : null}
 
           <DialogFooter className="pt-2">
             <Button
