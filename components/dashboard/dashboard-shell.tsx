@@ -139,14 +139,27 @@ export function StatCard({
   hint?: string;
   tone?: "admit" | "gold" | "refuse";
 }) {
+  /*
+   * A tone only applies to a figure that has something to say.
+   *
+   * "Passes issued: 0" was printed in the admit green, which is the colour this
+   * product uses for a person getting through a gate. Spending it on a zero
+   * means it is not available to mean anything when the number is real — and a
+   * green nought reads, for a moment, as though something went right.
+   *
+   * `gold` is the name of the attention tone, not of a colour: the paper scale
+   * has no gold, so it resolves to `--primary` on both grounds.
+   */
+  const muted = value === 0 || value === "—";
+
   const toneClass =
-    tone === "admit"
-      ? "text-admit"
-      : tone === "gold"
-        ? "text-primary"
-        : tone === "refuse"
-          ? "text-refuse"
-          : "text-foreground";
+    muted || !tone
+      ? "text-foreground"
+      : tone === "admit"
+        ? "text-admit"
+        : tone === "gold"
+          ? "text-primary"
+          : "text-refuse";
 
   return (
     <div className="stub px-5 py-5">

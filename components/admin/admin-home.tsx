@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 
-import { ROLE_LABELS, type UserRole } from "@/lib/types";
+import { subscribePendingEvents } from "@/lib/firestore-queries";
+import { ROLE_LABELS, type EventDoc, type UserRole } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
 import { DashboardShell, StatCard } from "@/components/dashboard/dashboard-shell";
 import { EventsPanel } from "@/components/dashboard/events-panel";
@@ -28,8 +30,31 @@ interface Counts {
 export function AdminHome() {
   const [counts, setCounts] = useState<Counts>({ events: 0, issued: 0, capacity: 0 });
   const [roleCounts, setRoleCounts] = useState<Partial<Record<UserRole, number>>>({});
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pending, setPending] = useState<EventDoc[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
   const [tab, setTab] = useState("overview");
+
+  // Subscribed here rather than inside <RequestsPanel>, for the reason spelled
+  // out in that component: inactive tabs unmount, so a panel-owned listener
+  // left this overview reporting an empty queue until somebody opened the tab.
+  useEffect(() => {
+    return subscribePendingEvents(
+      (events) => {
+        setPending(events);
+        setPendingLoading(false);
+      },
+      (error) => {
+        console.error("[requests] subscription failed", error);
+        setPendingLoading(false);
+        toast.error("Lost the live connection", {
+          id: "requests",
+          description: "Proposals may be out of date. Reload to reconnect.",
+        });
+      },
+    );
+  }, []);
+
+  const pendingCount = pending.length;
 
   // Stable identities: these are handed to panels whose reporting effects
   // depend on them, and a fresh closure each render would loop.
@@ -38,7 +63,6 @@ export function AdminHome() {
     (next: Partial<Record<UserRole, number>>) => setRoleCounts(next),
     [],
   );
-  const handlePending = useCallback((next: number) => setPendingCount(next), []);
 
   const totalPeople = useMemo(
     () => Object.values(roleCounts).reduce((sum, n) => sum + (n ?? 0), 0),
@@ -75,10 +99,19 @@ export function AdminHome() {
         value: "requests",
         label: "Requests",
         badge: pendingCount,
-        content: <RequestsPanel onCountChange={handlePending} />,
+        content: <RequestsPanel pending={pending} loading={pendingLoading} />,
       },
     ],
-    [counts, roleCounts, totalPeople, pendingCount, handleCounts, handleRoles, handlePending],
+    [
+      counts,
+      roleCounts,
+      totalPeople,
+      pending,
+      pendingCount,
+      pendingLoading,
+      handleCounts,
+      handleRoles,
+    ],
   );
 
   return (
@@ -164,7 +197,8 @@ function AdminOverview({
       <Stub notched notchAt="calc(100% - 4.5rem)" className="overflow-hidden">
         <div className="px-5 pb-5 pt-5">
           <div className="flex items-start gap-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 ring-1 ring-gold/30">
+            {/* `ring-primary`, not `ring-gold` — see the note in organizer-home. */}
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 ring-1 ring-primary/25">
               <ShieldCheck className="size-5 text-primary" />
             </div>
             <div className="min-w-0">

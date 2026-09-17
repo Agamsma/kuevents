@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Inbox, Loader2, MapPin, Users, X } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
-import { subscribePendingEvents } from "@/lib/firestore-queries";
 import { formatDateTime, formatDayNum, formatMonthAbbr } from "@/lib/format";
 import { categoryLabel, TRACK_LABELS, type EventDoc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -35,50 +34,45 @@ type Decision =
  * Any organizer may review any pending proposal — a proposal has no owner
  * until somebody approves it and takes responsibility for the venue and gate.
  */
+/**
+ * The queue is owned by the dashboard, not by this panel.
+ *
+ * It used to subscribe here and report upward through an `onCountChange`
+ * callback, whose comment claimed it let "the dashboard badge the tab without
+ * subscribing a second time". That was the bug: `TabsContent` unmounts inactive
+ * tabs, so on the Overview — the tab that opens by default, whose entire job is
+ * to answer "what needs me right now" — this panel had never mounted, the
+ * subscription had never started, and the count was 0. The organizer was told
+ * "Awaiting you: 0 proposals" with three sitting in the queue, and the "N
+ * proposals are waiting" callout never appeared. The only way to learn there
+ * was work was to open the tab that would have told you anyway, which is how
+ * proposals rot.
+ */
 export function RequestsPanel({
-  onCountChange,
+  pending,
+  loading,
 }: {
-  /** Lets the dashboard badge the tab without subscribing a second time. */
-  onCountChange?: (count: number) => void;
+  pending: EventDoc[];
+  loading: boolean;
 }) {
   const { getIdToken } = useAuth();
 
-  const [pending, setPending] = useState<EventDoc[]>([]);
-  const [loading, setLoading] = useState(true);
   const [decision, setDecision] = useState<Decision>(null);
   const [working, setWorking] = useState(false);
 
-  useEffect(() => {
-    onCountChange?.(pending.length);
-  }, [pending.length, onCountChange]);
-
   /*
-   * Live, not a snapshot.
+   * Decided here but not yet gone from the snapshot.
    *
-   * Two organizers can work this queue at once. With a fetch-and-refresh list
-   * they can both open the same proposal, and the second one decides an event
-   * the first already handled. A subscription makes rows leave the board the
-   * moment anybody acts on them.
-   *
-   * setState only ever runs from the snapshot callback, never synchronously in
-   * the effect body.
+   * The round trip is long enough that leaving the card in place feels like a
+   * dead button. The subscription emits the real removal a moment later and
+   * this becomes redundant — it is never read again for that id, so it costs
+   * one string per decision for the life of the tab.
    */
-  useEffect(() => {
-    return subscribePendingEvents(
-      (events) => {
-        setPending(events);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("[requests] subscription failed", error);
-        setLoading(false);
-        toast.error("Lost the live connection", {
-          id: "requests",
-          description: "Proposals may be out of date. Reload to reconnect.",
-        });
-      },
-    );
-  }, []);
+  const [dismissed, setDismissed] = useState<ReadonlySet<string>>(new Set());
+  const visible = useMemo(
+    () => pending.filter((event) => !dismissed.has(event.id)),
+    [pending, dismissed],
+  );
 
   const decide = useCallback(
     async (event: EventDoc, status: "published" | "rejected", extras: {
@@ -103,10 +97,7 @@ export function RequestsPanel({
         const body = await response.json();
         if (!response.ok) throw new Error(body.error ?? "Could not save that.");
 
-        // Drop it locally so the click feels instant. The subscription will
-        // emit the same removal a moment later and supersede this — but the
-        // round trip is long enough to feel like a dead button without it.
-        setPending((current) => current.filter((e) => e.id !== event.id));
+        setDismissed((current) => new Set(current).add(event.id));
         setDecision(null);
 
         toast.success(
@@ -147,12 +138,12 @@ export function RequestsPanel({
               <div key={i} className="stub h-64 animate-pulse" />
             ))}
           </div>
-        ) : pending.length === 0 ? (
+        ) : visible.length === 0 ? (
           <EmptyQueue />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             <AnimatePresence mode="popLayout">
-              {pending.map((event, index) => (
+              {visible.map((event, index) => (
                 <ProposalCard
                   key={event.id}
                   event={event}

@@ -1,13 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarClock, Inbox, ScanLine, Ticket } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
+import { subscribePendingEvents } from "@/lib/firestore-queries";
 import { formatDate, formatTime } from "@/lib/format";
 import { TRACK_LABELS, type EventDoc } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { FieldLabel, Perforation, Stub } from "@/components/ui/stub";
 import { DashboardShell, StatCard } from "@/components/dashboard/dashboard-shell";
 import { EventsPanel } from "@/components/dashboard/events-panel";
@@ -31,14 +33,47 @@ export function OrganizerHome() {
   const { profile } = useAuth();
 
   const [counts, setCounts] = useState<Counts>({ events: 0, issued: 0, capacity: 0 });
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pending, setPending] = useState<EventDoc[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
   const [upcoming, setUpcoming] = useState<EventDoc | null>(null);
   const [tab, setTab] = useState("overview");
+
+  /*
+   * The review queue is subscribed HERE, not inside <RequestsPanel>.
+   *
+   * `TabsContent` unmounts inactive tabs, so while the panel owned this
+   * subscription it did not exist until somebody opened the Requests tab — and
+   * the Overview, which opens by default and exists to answer "what needs me
+   * right now", confidently reported "Awaiting you: 0 proposals" with a full
+   * queue. The one thing that needed the organizer was the one thing the
+   * dashboard could not see.
+   *
+   * Owning it at this level also means exactly one listener for the badge, the
+   * stat, the callout and the panel, rather than the tab badge depending on a
+   * child that may not be rendered.
+   */
+  useEffect(() => {
+    return subscribePendingEvents(
+      (events) => {
+        setPending(events);
+        setPendingLoading(false);
+      },
+      (error) => {
+        console.error("[requests] subscription failed", error);
+        setPendingLoading(false);
+        toast.error("Lost the live connection", {
+          id: "requests",
+          description: "Proposals may be out of date. Reload to reconnect.",
+        });
+      },
+    );
+  }, []);
+
+  const pendingCount = pending.length;
 
   // Stable identities: these are passed to memoised panels, and a fresh closure
   // each render would re-fire their reporting effects in a loop.
   const handleCounts = useCallback((next: Counts) => setCounts(next), []);
-  const handlePending = useCallback((next: number) => setPendingCount(next), []);
   const handleUpcoming = useCallback((next: EventDoc | null) => setUpcoming(next), []);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? "there";
@@ -73,10 +108,10 @@ export function OrganizerHome() {
         value: "requests",
         label: "Requests",
         badge: pendingCount,
-        content: <RequestsPanel onCountChange={handlePending} />,
+        content: <RequestsPanel pending={pending} loading={pendingLoading} />,
       },
     ],
-    [counts, pendingCount, upcoming, handleCounts, handlePending, handleUpcoming],
+    [counts, pending, pendingCount, pendingLoading, upcoming, handleCounts, handleUpcoming],
   );
 
   return (
@@ -126,7 +161,15 @@ function Overview({
       {pendingCount > 0 ? (
         <Stub notched notchAt="calc(100% - 4.5rem)" className="overflow-hidden">
           <div className="flex items-start gap-4 px-5 pb-5 pt-5">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 ring-1 ring-gold/30">
+            {/*
+              `ring-primary`, not `ring-gold`. This console is a paper surface,
+              and the paper scale deliberately defines no gold — KU Yellow is
+              1.34:1 here, and `lib/theme.test.mts` fails the build if the token
+              ever appears. Asking for it anyway did not error; it silently
+              inherited the OBSIDIAN value through the cascade and painted a
+              pale yellow ring nobody could see.
+            */}
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/15 ring-1 ring-primary/25">
               <Inbox className="size-5 text-primary" />
             </div>
             <div className="min-w-0">
