@@ -176,7 +176,41 @@ in `lib/auth-domain.ts`. Google's `hd` parameter narrows the account chooser but
 is **not** a control — a user can still pick any account.
 
 `proxy.ts` (Next 16's renamed middleware) only redirects on a client-writable
-hint cookie and sets security headers. It is a UX shortcut, not a boundary.
+hint cookie. That part is a UX shortcut, not a boundary. It also issues the
+security headers, and those are real.
+
+### The CSP is nonce-based, which is why nothing is statically rendered
+
+`proxy.ts` mints a fresh nonce per request and sends it both in the
+`Content-Security-Policy` response header and on the request, where Next reads
+it back and attaches it to every script it emits. The policy uses
+`script-src 'nonce-…' 'strict-dynamic'`, so a script injected into the page
+cannot run: it carries no nonce, and it was not inserted by something that did.
+
+This is why `app/layout.tsx` exports `dynamic = "force-dynamic"`. A statically
+prerendered page has its scripts baked in at build time with no nonce, and
+`'strict-dynamic'` tells the browser to ignore the `'self'` sitting beside it —
+so every script on that page is blocked. **The build still succeeds.** It only
+fails in a browser, which is the trap: if you ever reintroduce static rendering
+on a route, that route ships with React never hydrating.
+
+The landing page did not lose its 60-second cache when `export const
+revalidate = 60` came off it. The cache moved onto the query instead
+(`fetchLandingData`), so the HTML is rebuilt per request while Firestore is
+still read at most once a minute — and the hero still ages in step with
+`s-maxage=60` on `/api/events/public`.
+
+`use cache` would be the modern way to do that caching, but it requires
+`cacheComponents: true`, which enables PPR — and PPR cannot coexist with a
+nonce CSP, because scripts in the prerendered shell never receive one.
+`unstable_cache` is deprecated and correct here; that trade is deliberate.
+
+Every origin the policy allows is listed and justified in `proxy.ts`. Adding to
+that list should happen because a real request was blocked, never pre-emptively.
+The one concession is `style-src-attr 'unsafe-inline'`: nonces do not apply to
+HTML attributes, and framer-motion writes inline styles on every frame, so a
+nonce-only style policy would block the entire interface. `script-src`, which
+is what stops XSS, stays strict.
 
 ### Why the gate scanner is built the way it is
 
@@ -305,11 +339,21 @@ automatic single-field indexes. See `lib/firestore-queries.ts` for why.
   This is the largest remaining gap — a student who is rejected finds out only
   by revisiting `/proposals`.
 - **No route tests.** `lib/` is covered — the offline scan decision, the QR and
-  rotation maths, the payload validator, the JSON guarantee in `api-handler`,
-  and the contrast floors in `lib/theme.test.mts`, which reads the values
-  straight out of `globals.css` and fails the build if any drops below AA. The
-  API routes themselves are typechecked and manually exercised, not unit-tested,
-  because each one needs the Admin SDK and there is no emulator wired up.
+  rotation maths, the SHA-256 and HMAC primitives against their published
+  vectors, the authorisation decisions in `lib/auth-decision.ts`, the payload
+  validator, the JSON guarantee in `api-handler`, and the contrast floors in
+  `lib/theme.test.mts`, which reads the values straight out of `globals.css`
+  and fails the build if any drops below AA. The API routes themselves are
+  typechecked and manually exercised, not unit-tested, because each one needs
+  the Admin SDK and there is no emulator wired up.
+
+  What *is* now tested is the part that decides who gets in. `requireCaller()`
+  used to reach straight into `adminAuth()` and `adminDb()`, so no refusal path
+  could be exercised without standing up Firebase. The decisions moved into
+  `lib/auth-decision.ts`, where they are pure — bearer parsing, the domain rule,
+  the role check — and `server-auth.ts` kept only the I/O around them. Same
+  statuses, same messages; the difference is that "a student is refused at a
+  superadmin route" is now a test rather than a hope.
 - **A finished event disappears from the directory rather than moving to an
   archive.** `isOn` (in `lib/types.ts`) drops anything past its `ends_at` from
   both public read paths. Direct links still resolve, so nothing is lost, but

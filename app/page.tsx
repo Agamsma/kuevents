@@ -12,13 +12,17 @@ export const metadata: Metadata = {
 };
 
 /**
- * Matches the `s-maxage=60` on `/api/events/public`, so the two public read
- * paths — this page's poster board and the directory's client fetch — age at
- * the same rate. A visitor cannot see a hero advertising an event the calendar
- * below has already dropped. Both now also apply the same `isOn` date rule,
- * which is the other half of keeping them from disagreeing.
+ * Rendered per request, so `proxy.ts` can hand it a fresh CSP nonce — ISR and
+ * nonces are mutually exclusive, because a page generated once cannot carry a
+ * value that changes on every visit.
+ *
+ * The 60-second life did not go away with `export const revalidate = 60`; it
+ * moved onto the query, in `fetchLandingData`. The poster board and the
+ * directory's client fetch still age at the same rate as `s-maxage=60` on
+ * `/api/events/public`, so a visitor still cannot see a hero advertising an
+ * event the calendar below has already dropped. What changed is that the HTML
+ * is rebuilt each time and Firestore is not re-read.
  */
-export const revalidate = 60;
 
 /**
  * The front door.

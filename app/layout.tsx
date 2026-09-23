@@ -38,6 +38,29 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
+/**
+ * Every page renders per request, so every page can carry a CSP nonce.
+ *
+ * Set once here rather than on each page: route segment config in a layout
+ * applies to everything beneath it, and the one thing worse than paying for
+ * dynamic rendering is paying for it on all but one route.
+ *
+ * This is not a performance preference, it is a correctness requirement. A
+ * statically prerendered page has its <script> tags baked in at build time
+ * with no nonce, while `proxy.ts` sends a fresh nonce in the header on every
+ * request. Because the policy uses `'strict-dynamic'`, browsers ignore the
+ * `'self'` fallback beside it — so those scripts match nothing, and the page
+ * ships to the visitor with React never hydrating and the console full of
+ * violations. The build succeeds either way; this only shows up in a browser.
+ *
+ * The cost is smaller than the route list makes it look. Almost every page
+ * here is an auth-gated client shell that does no server data fetching, so
+ * rendering it per request is a cheap template render. The one page that does
+ * read data, `/`, keeps its 60-second cache — it just sits on the query now
+ * instead of on the HTML. See `fetchLandingData`.
+ */
+export const dynamic = "force-dynamic";
+
 const SITE_URL = "https://kuevents.in";
 
 const DESCRIPTION =

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { isUniversityEmail } from "@/lib/auth-domain";
+import { authorize, parseBearerToken } from "@/lib/auth-decision";
 import type { UserProfile, UserRole } from "@/lib/types";
 
 export interface AuthedCaller {
@@ -33,10 +33,12 @@ export async function requireCaller(
   request: Request,
   allowedRoles?: UserRole[],
 ): Promise<AuthedCaller> {
-  const header = request.headers.get("authorization") ?? "";
-  const [scheme, token] = header.split(" ");
+  // Parsing and the authorisation decisions live in `lib/auth-decision.ts`,
+  // where they are pure and therefore tested. This function is the I/O around
+  // them: verify the signature, load the profile.
+  const token = parseBearerToken(request.headers.get("authorization"));
 
-  if (scheme?.toLowerCase() !== "bearer" || !token) {
+  if (!token) {
     throw new AuthError("Missing bearer token.", 401);
   }
 
@@ -65,28 +67,31 @@ export async function requireCaller(
     throw new AuthError("Invalid or expired session.", 401);
   }
 
-  if (!isUniversityEmail(decoded.email)) {
-    throw new AuthError("Account is outside the university domain.", 403);
-  }
-
+  /*
+   * The profile is read before the domain is checked, which costs one lookup
+   * for an account that was never going to be admitted. Worth it: `authorize`
+   * then answers with the whole picture in one place, and the order of the
+   * refusals is decided there — in a pure function with tests — rather than
+   * being an emergent property of how this function happens to be sequenced.
+   */
   const snap = await adminDb().collection("users").doc(decoded.uid).get();
-  if (!snap.exists) {
-    throw new AuthError("No profile for this account.", 403);
-  }
+  const profile = snap.exists ? (snap.data() as UserProfile) : undefined;
 
-  const profile = snap.data() as UserProfile;
+  const decision = authorize({
+    email: decoded.email,
+    profileExists: snap.exists,
+    profileRole: profile?.role,
+    allowedRoles,
+  });
 
-  if (allowedRoles && !allowedRoles.includes(profile.role)) {
-    throw new AuthError(
-      `Requires one of: ${allowedRoles.join(", ")}.`,
-      403,
-    );
+  if (!decision.ok) {
+    throw new AuthError(decision.refusal.message, decision.refusal.status);
   }
 
   return {
     uid: decoded.uid,
     email: decoded.email!,
-    role: profile.role,
-    name: profile.full_name ?? decoded.name ?? decoded.email!,
+    role: decision.role,
+    name: profile?.full_name ?? decoded.name ?? decoded.email!,
   };
 }

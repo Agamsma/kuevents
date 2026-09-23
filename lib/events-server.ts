@@ -1,5 +1,7 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
+
 import { adminDb } from "@/lib/firebase-admin";
 import { isOn, type EventDoc, type EventTrack } from "@/lib/types";
 
@@ -116,6 +118,37 @@ const EMPTY_LANDING: LandingData = { wall: [], upcoming: 0, schools: 0 };
  */
 export async function fetchLandingData(wallSize = 7): Promise<LandingData> {
   try {
+    return await loadLanding(wallSize);
+  } catch (error) {
+    console.error("[landing] failed", error);
+    return EMPTY_LANDING;
+  }
+}
+
+/**
+ * The cached half, and the reason the landing page no longer sets
+ * `export const revalidate = 60`.
+ *
+ * A strict CSP issues a fresh nonce per request, which requires the page to be
+ * rendered per request — ISR and nonces cannot both hold. Rather than give up
+ * the Firestore savings with it, the CACHE MOVED OFF THE PAGE AND ONTO THE
+ * QUERY: the HTML is now built every time, the query behind it still runs at
+ * most once a minute. Same 60 seconds, same parity with `s-maxage=60` on
+ * `/api/events/public`, so the hero and the directory below it still age
+ * together and cannot advertise different calendars.
+ *
+ * `unstable_cache` rather than `use cache`: the latter needs
+ * `cacheComponents: true`, which turns on Partial Prerendering, and Next's own
+ * CSP guide states PPR is incompatible with nonce-based CSP because scripts in
+ * the static shell never receive a nonce. Deprecated-but-correct beats current-
+ * but-incompatible. Revisit when `use cache` can be enabled without PPR.
+ *
+ * The try/catch stays OUTSIDE this wrapper deliberately. A throw here escapes
+ * uncached, so a Firestore outage is retried on the next request instead of
+ * being frozen into an empty front page for a minute.
+ */
+const loadLanding = unstable_cache(
+  async (wallSize: number): Promise<LandingData> => {
     // Already date-filtered by `fetchPublicEvents`, so the hero and the
     // directory below it are reading the same calendar through the same rule.
     // They were not, which is how the front page came to show an
@@ -127,8 +160,7 @@ export async function fetchLandingData(wallSize = 7): Promise<LandingData> {
       upcoming: on.length,
       schools: new Set(on.map((event) => event.track)).size,
     };
-  } catch (error) {
-    console.error("[landing] failed", error);
-    return EMPTY_LANDING;
-  }
-}
+  },
+  ["landing-data"],
+  { revalidate: 60, tags: ["events"] },
+);
