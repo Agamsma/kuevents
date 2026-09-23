@@ -72,9 +72,23 @@ interface Slot {
 const SLOTS: Slot[] = [
   // The right half, which is the half the notice leaves free on a wide screen.
   { top: "4%", left: "57%", w: 146, rotate: -5, depth: 0.62 },
-  { top: "-3%", left: "77%", w: 170, rotate: 4, depth: 0.95 },
+  /*
+   * These two sit far enough right that on a phone they are more off the
+   * screen than on it.
+   *
+   * A bill running past the edge is the point — the board continues, it is not
+   * an arrangement inside a frame. But at 390px, `left: 77%` starts at 300px
+   * and runs 170 wide, so what a visitor actually sees is a title sliced
+   * through the middle of a word ("National … Court Rou"). Half a headline
+   * reads as text overflowing its container, which is the opposite of the
+   * deliberate impression the bleed is there to create.
+   *
+   * Hidden below `lg` rather than below `sm`: the same arithmetic still bleeds
+   * them badly at tablet widths.
+   */
+  { top: "-3%", left: "77%", w: 170, rotate: 4, depth: 0.95, hideOnSmall: true },
   { top: "34%", left: "64%", w: 128, rotate: 7, depth: 0.45, hideOnSmall: true },
-  { top: "42%", left: "85%", w: 158, rotate: -3, depth: 0.82 },
+  { top: "42%", left: "85%", w: 158, rotate: -3, depth: 0.82, hideOnSmall: true },
   { top: "66%", left: "72%", w: 142, rotate: 6, depth: 0.7 },
   // Two peeking past the left edge, so the board reads as continuing off-screen
   // rather than as a decoration arranged inside the frame.

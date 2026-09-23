@@ -648,6 +648,36 @@
   scroll-snap-align: start;
 }
 
+/*
+ * A row of chips that scrolls sideways instead of wrapping.
+ *
+ * The school filter is nine chips. Left to wrap, it broke onto three lines
+ * inside a `rounded-full` container on a phone — a tall lozenge with big empty
+ * corners, which was the worst-looking element on the site. A filter row that
+ * scrolls is the familiar mobile pattern and keeps the pill a pill at every
+ * width.
+ *
+ * Deliberately NOT `.rail`: that fades its edges with a mask, and a mask fades
+ * focus rings with everything else. These chips are tab stops, so a keyboard
+ * user must be able to see which one is focused when it sits at the edge.
+ * Scroll snapping is left off too — a filter row is scanned, not paged.
+ */
+.chip-rail {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Overrides the 10px global scrollbar for this element only. */
+.chip-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.chip-rail > * {
+  flex: 0 0 auto;
+}
+
 /* ───────────────────────────────────────────────────────────────────────────
    Ambient motion
    The hero's background is three slow blurred orbs on long, offset cycles.

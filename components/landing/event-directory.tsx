@@ -41,10 +41,23 @@ function safeParse(text: string): { events?: unknown; error?: string } | null {
  * far better than landscape ones did — the crop stays legible when the type
  * shrinks with it.
  */
-const GRID_CLASS = "grid gap-5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+/*
+ * One column on a phone.
+ *
+ * Two columns at 390px gave each card about 170px: titles broke onto three
+ * lines and every venue truncated mid-word ("UWSL Moot Court Ha…"), which is
+ * the one field a student actually needs to read. A single full-width card is
+ * wide enough for both, and the cards without artwork are no longer locked to
+ * 2:3, so a column of them scans rather than filling the screen with two.
+ *
+ * The second column returns at 30rem, where there is room for it.
+ */
+const GRID_CLASS =
+  "grid gap-5 grid-cols-1 min-[30rem]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
 
 /** Mirrors GRID_CLASS: 15rem once four columns lock in, viewport-relative below. */
-const CARD_SIZES = "(min-width: 1024px) 15rem, (min-width: 640px) 30vw, 45vw";
+const CARD_SIZES =
+  "(min-width: 1024px) 15rem, (min-width: 640px) 30vw, (min-width: 30rem) 45vw, 92vw";
 
 /*
  * Derived from TRACKS, not listed here.
@@ -198,7 +211,14 @@ export function EventDirectory() {
           className="mt-8"
         >
             <Reveal>
-              <TabsList className="mb-9 flex-wrap">
+              {/*
+                `chip-rail`, not `flex-wrap`. Nine chips wrapped onto three
+                lines inside a rounded-full container, which produced a tall
+                lozenge with hollow corners on a phone. Scrolling sideways keeps
+                one row at every width. `max-w-full` is what lets the inline-flex
+                pill be narrower than its contents so the overflow can scroll.
+              */}
+              <TabsList className="chip-rail mb-9 max-w-full flex-nowrap">
                 {TABS.map((entry) => (
                   <TabsTrigger key={entry.value} value={entry.value}>
                     {tab === entry.value ? <TabsPill /> : null}

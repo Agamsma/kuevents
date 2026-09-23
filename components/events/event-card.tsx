@@ -195,16 +195,36 @@ export function EventCard({
             </div>
           ) : (
             /*
-              The printed bill. Same 2:3 block as the poster, so a mixed grid
-              stays even — a row where some cards carry art and some do not must
-              not step up and down.
+              The printed bill.
+
+              It used to carry `.poster` too — the same locked 2:3 block as the
+              artwork variant — so that a mixed row could not step up and down.
+              The evenness was worth keeping; the fixed height was not. A 2:3
+              block holding three short groups of text is mostly empty, and
+              since no event on the directory currently has a cover, EVERY card
+              was that empty block.
+
+              `flex-1` gets the evenness without the emptiness. In a mixed row
+              the grid stretches each cell to the tallest card and this block
+              grows to fill it, so a bill beside a poster still lines up. In a
+              row of nothing but bills there is no poster setting the height, so
+              the row collapses to the content — which is the common case, and
+              the one that looked broken.
 
               No scrim and no image, so every value is an alias resolving
               against the page's own scale. The chips become ruled outlines
               rather than `chip-on-photo`, which is a dark lift designed to
               survive a blown-out photograph and would be a grey smear here.
             */
-            <div className="poster relative flex shrink-0 flex-col justify-between bg-paper-raised p-3.5">
+            /*
+              The height floor starts at the two-column breakpoint, not on a
+              phone. It exists so a narrow card with a three-word title does
+              not collapse into something stubbier than its neighbours. A
+              full-width card has no such problem — its title fits on one line,
+              so on a phone the floor only reopened the gap this variant was
+              rewritten to close.
+            */
+            <div className="relative flex flex-1 flex-col bg-paper-raised p-3.5 min-[30rem]:min-h-[13rem]">
               <div className="flex flex-wrap gap-1.5">
                 <span className="rounded-full border border-[color:var(--line-strong)] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">
                   {TRACK_LABELS[event.track] ?? event.track}
@@ -219,12 +239,23 @@ export function EventCard({
                 the frame with a photograph. With nothing else in the block it
                 is the artwork, and setting it at poster size is the whole point
                 of the variant.
+
+                It sits directly under the chips now. It used to be centred by
+                `justify-between` across a locked 2:3 block, which — with only
+                three small groups to distribute — opened a void above the title
+                AND another below it. Six of those in a grid read as artwork
+                failing to load, which is the exact impression the variant was
+                written to avoid.
               */}
-              <h3 className="display line-clamp-4 text-[1.45rem] leading-[1.08] text-foreground">
+              <h3 className="display mt-3.5 line-clamp-4 text-[1.45rem] leading-[1.08] text-foreground">
                 {event.title}
               </h3>
 
-              <div>
+              {/*
+                `mt-auto` leaves ONE controlled gap, at the bottom, instead of
+                two arbitrary ones.
+              */}
+              <div className="mt-auto pt-6">
                 <span className="block font-mono text-[9px] font-medium uppercase tracking-[0.16em] text-subtle-foreground tabular">
                   {formatMonthAbbr(event.starts_at)} {formatDayNum(event.starts_at)}
                   {" · "}
