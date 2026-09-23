@@ -14,6 +14,12 @@
  * hash — see the note there for exactly how far that goes.
  */
 
+// Relative, with the extension: `node --test` resolves neither the `@/` alias
+// nor a bare specifier, and this module has to stay importable by `qr.test.mts`
+// and by `lib/db/indexeddb.ts`. `hmac.ts` follows the same rule and imports
+// nothing itself.
+import { hmacHex } from "./hmac.ts";
+
 const QR_PREFIX = "KUE1";
 
 /**
@@ -160,21 +166,33 @@ export function windowIndex(nowMs: number = Date.now()): number {
 /**
  * The rotating code for one window, keyed by the ticket's secret.
  *
- * FNV-1a over `secret:window`. Not cryptographic, and it does not need to be:
- * the secret is the only thing withheld, the value is short-lived, and the
- * unforgeable half of the pass is still the HMAC in `qr_hash`. This exists to
- * make a *stale* code detectable, not to be a second signature.
+ * HMAC-SHA256 over `window`, keyed by the secret, truncated to 8 hex chars.
+ *
+ * THIS WAS FNV-1a, AND FNV-1a WAS FORGEABLE. Not subtly — completely, and in
+ * the exact way the block comment above warns about.
+ *
+ * FNV-1a absorbs its input left to right into a 32-bit accumulator. The
+ * material was `secret:window`, so the secret went in first and everything
+ * after it depended on the accumulator alone. An attacker never needed the
+ * secret: they needed the 32-bit state it produced. One `(window, code)` pair
+ * off a shared screenshot brute-forces that state in 2^32 — minutes on a CPU —
+ * a second pair confirms it, and from there every future window's code follows.
+ * A screenshot did not expire at the end of its window; it minted valid codes
+ * forever. That is precisely "looks protected and is not".
+ *
+ * HMAC has no such structure. It is a pseudorandom function, so observing any
+ * number of (window, code) pairs reveals nothing about the key, and truncating
+ * to 32 bits only limits an attacker to guessing one window's code at 2^-32 —
+ * against a marshal watching the gate.
+ *
+ * Synchronous by necessity: this is called inside a Dexie transaction. See the
+ * header of `lib/hmac.ts`.
+ *
+ * The window is the whole message now; the secret is the key rather than a
+ * prefix of the material, which is what keying is for.
  */
 export function rotatingCode(secret: string, window: number): string {
-  let acc = 0x811c9dc5;
-  const material = `${secret}:${window}`;
-
-  for (let i = 0; i < material.length; i += 1) {
-    acc ^= material.charCodeAt(i);
-    acc = Math.imul(acc, 0x01000193) >>> 0;
-  }
-
-  return acc.toString(16).padStart(8, "0");
+  return hmacHex(secret, String(window), 8);
 }
 
 /** Wraps a rotating pass into its scannable payload. */
