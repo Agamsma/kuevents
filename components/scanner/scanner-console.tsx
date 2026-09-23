@@ -351,6 +351,35 @@ export function ScannerConsole() {
       } else {
         toast.success("Everything is synced", { id: "sync" });
       }
+    } catch (error) {
+      /*
+       * There was a `finally` here and no `catch`, which is the worst shape
+       * this particular button could have had.
+       *
+       * `flushSyncQueue` reports its failures in the returned result rather
+       * than throwing — `startAutoSync` even carries a note that its own catch
+       * "is not decoration" for exactly this reason — but "rather than" is not
+       * "never". `retryBlockedScans` touches IndexedDB, which throws on a
+       * blocked upgrade or in a private window, and an unexpected reply used to
+       * throw out of the flush as well.
+       *
+       * When that happened the `finally` still stopped the spinner, so a
+       * marshal saw the button finish and no toast at all: no success, no
+       * error, nothing. The safe reading of that is "it worked", which is the
+       * opposite of what happened, in the one place this product cannot afford
+       * to be silent. The queue is intact either way — this is about the person
+       * holding the phone knowing that.
+       */
+      console.error("[scanner] manual sync failed", error);
+      toast.error("Sync failed", {
+        id: "sync",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Nothing was lost. The queue will keep retrying on its own.",
+      });
+      setPending(await pendingScanCount());
+      setBlocked(await blockedScanCount());
     } finally {
       setSyncing(false);
     }

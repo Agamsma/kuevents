@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "@/components/ui/toast";
+import { toCsv } from "@/lib/csv";
 
 type Filter = "all" | "inside" | "outside";
 
@@ -132,11 +133,9 @@ export function AttendeeList({ eventId }: { eventId: string }) {
       ]),
     ];
 
-    const csv = rows
-      // Quote every field and double any inner quotes — names with commas are
-      // common and would otherwise shift every later column.
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-      .join("\r\n");
+    // Escaping lives in `lib/csv.ts` — it is a security boundary, and it is
+    // tested there. See the note about display names and Excel formulas.
+    const csv = toCsv(rows);
 
     const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);

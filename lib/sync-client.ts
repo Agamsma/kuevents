@@ -117,7 +117,44 @@ export async function flushSyncQueue(
         };
       }
 
-      const body = (await response.json()) as SyncResponse;
+      /*
+       * A 200 is not a promise that the body is ours.
+       *
+       * Every other failure path above returns the batch to the queue; this one
+       * used to be a bare `await response.json()`, so a 200 carrying anything
+       * that is not JSON threw straight out of the function with `ids` still
+       * claimed. `claimPendingScans` only ever picks up rows with
+       * `in_flight === 0`, so those check-ins sat untouchable until the page
+       * was reloaded and `recoverStrandedScans` freed them — at a gate, where
+       * nobody reloads anything and nobody has a console open.
+       *
+       * The realistic trigger is not an exotic one. It is campus wifi behind a
+       * captive portal, which answers any request with 200 and an HTML sign-in
+       * page. The device believes it is online, `navigator.onLine` agrees, the
+       * fetch succeeds, and the body is a login form.
+       *
+       * The shape is checked too, not just the parse: a valid JSON body that is
+       * not a SyncResponse would otherwise reach `reconcileLocalRoster` and
+       * throw there, one step further from where it could be handled.
+       */
+      let body: SyncResponse;
+      try {
+        const parsed = (await response.json()) as SyncResponse;
+        if (!parsed || !Array.isArray(parsed.results)) {
+          throw new Error("not a sync response");
+        }
+        body = parsed;
+      } catch {
+        await releaseScans(ids);
+        return {
+          uploaded,
+          duplicates,
+          rejected,
+          remaining: await pendingScanCount(),
+          error:
+            "The server answered with something unreadable — a captive portal or proxy may be intercepting. Nothing was lost; the queue will retry.",
+        };
+      }
 
       uploaded += body.accepted;
       duplicates += body.duplicates;
