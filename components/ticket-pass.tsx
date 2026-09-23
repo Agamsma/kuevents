@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import QRCode from "react-qr-code";
 import { doc, getDoc } from "firebase/firestore";
 import {
@@ -28,9 +29,19 @@ import {
   shortCode,
   toMillis,
 } from "@/lib/format";
-import type { EventDoc, TicketDoc } from "@/lib/types";
+import { isOn, type EventDoc, type TicketDoc } from "@/lib/types";
+import { releasePass, ReleaseFailure } from "@/lib/release";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel, Perforation, Stub } from "@/components/ui/stub";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "@/components/ui/toast";
 
 interface PassData {
   ticket: TicketDoc;
@@ -114,9 +125,49 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 export function TicketPass({ ticketId }: { ticketId: string }) {
-  const { user } = useAuth();
+  const { user, getIdToken } = useAuth();
+  const router = useRouter();
   const [state, setState] = useState<LoadState>({ status: "loading" });
+  const [confirmingRelease, setConfirmingRelease] = useState(false);
+  const [releasing, setReleasing] = useState(false);
   const now = useNow();
+
+  /**
+   * Gives the seat back, then leaves.
+   *
+   * On success this navigates to /tickets rather than re-rendering the pass as
+   * a void stub. The QR is the whole screen, and leaving a greyed-out one on
+   * display invites the holder to try it at the gate anyway — where the refusal
+   * is a full red viewport in front of a queue. Better to end up on the list
+   * with the pass gone and the seat free.
+   */
+  const release = useCallback(async () => {
+    setReleasing(true);
+    try {
+      const token = await getIdToken();
+      if (!token) throw new ReleaseFailure("Your session expired. Sign in again.");
+
+      await releasePass({ ticketId, token });
+
+      setConfirmingRelease(false);
+      toast.success("Pass released", {
+        description: "Your seat is back on the directory for someone else.",
+      });
+      router.push("/tickets");
+      // The list reads through the client SDK, which may still be holding the
+      // pass it had a moment ago.
+      router.refresh();
+    } catch (error) {
+      // Anything that is not a ReleaseFailure is an internal fault whose text
+      // would tell a student nothing. Same boundary as booking.
+      const message =
+        error instanceof ReleaseFailure
+          ? error.message
+          : "Something went wrong. Your pass is unchanged.";
+      toast.error("Could not release the pass", { description: message });
+      setReleasing(false);
+    }
+  }, [getIdToken, router, ticketId]);
 
   useEffect(() => {
     if (!user) return;
@@ -344,6 +395,69 @@ export function TicketPass({ ticketId }: { ticketId: string }) {
         A screenshot will not get anyone in. This code admits one person once,
         and the strip above stops ticking the moment the screen is captured.
       </p>
+
+      {/*
+        Releasing is offered only while it would actually do something: the
+        pass is live, unused, and the event has not finished. Those are the
+        same three conditions `canRelease` enforces on the server — shown here
+        so the button is never a promise the API will refuse, and enforced
+        there because this check is only a rendering decision.
+
+        Deliberately quiet, and below the fold of the pass. The job of this
+        screen is to be scanned; giving the seat back is the rare case, and a
+        prominent button next to a QR code is one mis-tap away from a student
+        arriving at a gate with nothing.
+      */}
+      {!isVoid && !ticket.checked_in && event && isOn(event, now) ? (
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={() => setConfirmingRelease(true)}
+            className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-soft underline decoration-line underline-offset-4 transition-colors hover:text-refuse"
+          >
+            Can&rsquo;t make it? Release this pass
+          </button>
+        </div>
+      ) : null}
+
+      <Dialog
+        open={confirmingRelease}
+        onOpenChange={(open) => !open && !releasing && setConfirmingRelease(false)}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="display text-[1.5rem]">
+              Release this pass?
+            </DialogTitle>
+            <DialogDescription>
+              Your seat for {event?.title ?? "this event"} goes back on the
+              directory straight away. This cannot be undone — if you change
+              your mind you will have to book again, and the event may be full
+              by then.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setConfirmingRelease(false)}
+              disabled={releasing}
+            >
+              Keep it
+            </Button>
+            <Button variant="destructive" onClick={release} disabled={releasing}>
+              {releasing ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Releasing
+                </>
+              ) : (
+                "Release the pass"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Shell>
   );
 }

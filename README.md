@@ -158,6 +158,7 @@ app/
   api/events/propose/        student proposals
   api/admin/users/           list + assign roles (superadmin only)
   api/tickets/issue/         booking
+  api/tickets/release/       giving a seat back
   api/sync/                  bulk upload of offline check-ins
 lib/
   db/indexeddb.ts            Dexie roster cache and outbox  ← the core
@@ -326,6 +327,25 @@ disabled by `prefers-reduced-motion`.
 Capacity and the one-pass-per-student rule are enforced *inside* the booking
 transaction. Checking them beforehand would let two simultaneous taps both pass
 and oversell the venue.
+
+A seat can be given back. `POST /api/tickets/release` flips the ticket to
+`cancelled` and decrements `tickets_issued` in one transaction, so the two can
+never disagree. Before this existed `tickets_issued` only ever went up: nothing
+in the app wrote `cancelled` or `refunded`, even though the type carried them,
+the gate refused them and the attendee list counted them — so every student who
+booked and did not turn up held that seat until the event was over, and a capped
+venue quietly shrank with each one.
+
+Releasing is refused once a pass has been scanned, or once the event has
+finished. The first would hand away the seat of somebody already standing in the
+room; the second would rewrite a finished event's issued count, which is the
+figure an organizer reconciles against `check_in_logs`. Those rules live in
+`lib/ticket-release.ts` as a pure function, so each refusal is tested rather
+than trusted, and the route keeps only the transaction.
+
+The pass is cancelled rather than deleted. `check_in_logs` references ticket
+ids, and a gate scanning a released pass must be able to say "cancelled" and not
+"not found" — to a marshal those mean different things.
 
 No composite indexes are required — every query is shaped to run on Firestore's
 automatic single-field indexes. See `lib/firestore-queries.ts` for why.

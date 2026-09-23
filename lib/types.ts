@@ -267,6 +267,15 @@ export interface TicketDoc {
    */
   rotation_secret?: string | null;
   created_at: number;
+  /**
+   * When the holder gave the pass back. Absent on a pass that was never
+   * released.
+   *
+   * Kept beside `status` rather than inferred from it: "cancelled" will one day
+   * also mean an organizer voided it, and the two need telling apart when an
+   * attendee list is reconciled after the event.
+   */
+  released_at?: number | null;
 }
 
 /** Append-only audit trail. One document per accepted or rejected scan. */
