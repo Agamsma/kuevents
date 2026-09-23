@@ -546,6 +546,31 @@
   overflow: hidden;
 }
 
+/*
+ * A full-width card is a landscape poster.
+ *
+ * 2:3 is the proportion of a printed event bill and it is right for a card in
+ * a column of three or four. Below 30rem the directory drops to ONE column, so
+ * that same ratio makes a 350x567 slab — one event filling an entire phone
+ * screen, and six of them meaning six screens of scrolling to see what is on.
+ * A directory is scanned before it is browsed.
+ *
+ * So the crop follows the column width rather than fighting it: a narrow card
+ * is a portrait poster, a full-width one is a landscape poster. Both are still
+ * posters with the type set over the artwork — about 2.5 fit a screen now
+ * instead of 1.5.
+ *
+ * Scoped by a media query rather than a Tailwind utility on the element
+ * because `.poster` is unlayered CSS and would win against one anyway. The
+ * breakpoint matches GRID_CLASS in `event-directory.tsx`; the two have to move
+ * together, since this only makes sense while that grid is single-column.
+ */
+@media (width < 30rem) {
+  .poster {
+    aspect-ratio: 3 / 2;
+  }
+}
+
 .poster > img,
 .poster > video {
   width: 100%;
